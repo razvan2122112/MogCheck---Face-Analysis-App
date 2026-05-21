@@ -1,21 +1,26 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { DM_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
   subsets: ["latin"],
+  weight: ["400", "500"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "MogCheck — Face Analysis",
-  description: "AI-powered facial analysis. Discover your aesthetic scores and unlock your full potential.",
-  keywords: ["face analysis", "facial symmetry", "jawline", "aesthetic score", "AI"],
+  title: "MogCheck — Discover Your True Potential",
+  description: "AI-powered facial analysis. Get your score, find your weak points, and unlock your best self — backed by 40+ biometric markers.",
+  keywords: ["face analysis", "facial symmetry", "jawline", "aesthetic score", "AI", "mog score"],
 };
 
 export default function RootLayout({
@@ -26,11 +31,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${dmSans.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-[#0a0a0a] text-[#ededed]">
-        {children}
-      </body>
+      <body className="flex flex-col min-h-screen">{children}</body>
     </html>
   );
 }
