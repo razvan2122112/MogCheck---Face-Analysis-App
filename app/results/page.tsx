@@ -4,13 +4,31 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+interface DetectedFlaw {
+  flaw: string;
+  severity: "mild" | "moderate" | "severe";
+  fix: string;
+}
+
+interface ImprovementPlan {
+  skincare: string[];
+  exercises: string[];
+  lifestyle: string[];
+  grooming: string[];
+}
+
 interface AnalysisResult {
   symmetry_score: number;
   jawline_score: number;
   canthal_tilt: number;
   midface_ratio: number;
+  facial_thirds?: number;
+  skin_quality?: number;
   overall_score: number;
+  looksmax_rating?: string;
+  detected_flaws?: DetectedFlaw[];
   improvements: string[];
+  improvement_plan?: ImprovementPlan;
   summary?: string;
 }
 
@@ -56,6 +74,43 @@ function RatingLabel({ score }: { score: number }) {
   return <span className="text-[#f87171]">Needs Work</span>;
 }
 
+const SEVERITY_STYLES: Record<string, string> = {
+  mild: "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20",
+  moderate: "bg-orange-500/10 text-orange-400 border border-orange-500/20",
+  severe: "bg-red-500/10 text-red-400 border border-red-500/20",
+};
+
+function PlanSection({
+  icon, title, items, accentColor, delay,
+}: {
+  icon: string; title: string; items: string[]; accentColor: string; delay: number;
+}) {
+  return (
+    <div
+      className="rounded-2xl border bg-white/[0.02] p-5 fade-up"
+      style={{ borderColor: `${accentColor}22`, animationDelay: `${delay}ms`, animationFillMode: "both" }}
+    >
+      <div className="flex items-center gap-2 mb-4">
+        <span className="w-7 h-7 rounded-lg flex items-center justify-center text-sm flex-shrink-0"
+          style={{ background: `${accentColor}15` }}>
+          {icon}
+        </span>
+        <h3 className="text-xs font-bold uppercase tracking-widest" style={{ color: accentColor }}>
+          {title}
+        </h3>
+      </div>
+      <ul className="flex flex-col gap-2.5">
+        {items.map((item, i) => (
+          <li key={i} className="flex items-start gap-2 text-sm text-white/60 leading-relaxed">
+            <span className="mt-1.5 w-1 h-1 rounded-full flex-shrink-0" style={{ background: accentColor }} />
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default function ResultsPage() {
   const router = useRouter();
   const [results, setResults] = useState<AnalysisResult | null>(null);
@@ -88,7 +143,18 @@ export default function ResultsPage() {
     { label: "Jawline Definition", score: results.jawline_score },
     { label: "Canthal Tilt", score: results.canthal_tilt },
     { label: "Midface Ratio", score: results.midface_ratio },
+    ...(results.facial_thirds != null ? [{ label: "Facial Thirds Balance", score: results.facial_thirds }] : []),
+    ...(results.skin_quality != null ? [{ label: "Skin Quality", score: results.skin_quality }] : []),
   ];
+
+  const planSections = results.improvement_plan
+    ? [
+        { icon: "🧴", title: "Skincare", items: results.improvement_plan.skincare, accentColor: "#60a5fa", delay: 800 },
+        { icon: "💪", title: "Exercises", items: results.improvement_plan.exercises, accentColor: "#4ade80", delay: 900 },
+        { icon: "🌙", title: "Lifestyle", items: results.improvement_plan.lifestyle, accentColor: "#a78bfa", delay: 1000 },
+        { icon: "✂️", title: "Grooming", items: results.improvement_plan.grooming, accentColor: "#e99846", delay: 1100 },
+      ]
+    : [];
 
   return (
     <main className="min-h-screen bg-[#0a0a0a] text-[#ededed] flex flex-col">
@@ -145,8 +211,13 @@ export default function ResultsPage() {
           <p className="text-xl font-bold">
             Rating: <RatingLabel score={results.overall_score} />
           </p>
+          {results.looksmax_rating && (
+            <p className="mt-2 text-xs uppercase tracking-widest text-white/30">
+              Looksmax tier: <span className="text-[#e99846]/70">{results.looksmax_rating}</span>
+            </p>
+          )}
           {results.summary && (
-            <p className="text-white/40 text-sm mt-3 max-w-md mx-auto leading-relaxed">
+            <p className="text-white/40 text-sm mt-4 max-w-md mx-auto leading-relaxed">
               {results.summary}
             </p>
           )}
@@ -164,14 +235,37 @@ export default function ResultsPage() {
           </div>
         </div>
 
-        {/* Improvements */}
+        {/* Detected Flaws */}
+        {results.detected_flaws && results.detected_flaws.length > 0 && (
+          <div
+            className="rounded-2xl border border-red-500/10 bg-red-500/[0.03] p-6 mb-6 fade-up"
+            style={{ animationDelay: "500ms", animationFillMode: "both" }}
+          >
+            <h2 className="font-bold text-sm uppercase tracking-widest text-red-400/60 mb-4">Detected Flaws</h2>
+            <div className="flex flex-col gap-3">
+              {results.detected_flaws.map((item, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <span className={`mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${SEVERITY_STYLES[item.severity] ?? SEVERITY_STYLES.mild}`}>
+                    {item.severity}
+                  </span>
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    <span className="text-sm text-white/75 font-medium">{item.flaw}</span>
+                    <span className="text-xs text-white/35 leading-relaxed">{item.fix}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Quick Wins */}
         {results.improvements.length > 0 && (
           <div
-            className="rounded-2xl border border-[#e99846]/15 bg-[#e99846]/5 p-6 mb-8 fade-up"
-            style={{ animationDelay: "600ms", animationFillMode: "both" }}
+            className="rounded-2xl border border-[#e99846]/15 bg-[#e99846]/5 p-6 mb-6 fade-up"
+            style={{ animationDelay: "620ms", animationFillMode: "both" }}
           >
             <h2 className="font-bold text-sm uppercase tracking-widest text-[#e99846]/70 mb-4">
-              Improvement Suggestions
+              Quick Wins
             </h2>
             <ul className="flex flex-col gap-3">
               {results.improvements.map((item, i) => (
@@ -181,6 +275,24 @@ export default function ResultsPage() {
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {/* Personalized Improvement Plan */}
+        {planSections.length > 0 && (
+          <div className="mb-8">
+            <div
+              className="mb-5 fade-up"
+              style={{ animationDelay: "750ms", animationFillMode: "both" }}
+            >
+              <p className="text-xs uppercase tracking-[0.3em] text-[#e99846] mb-1 font-semibold">Personalized</p>
+              <h2 className="text-2xl font-black">Improvement Plan</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {planSections.map((s) => (
+                <PlanSection key={s.title} {...s} />
+              ))}
+            </div>
           </div>
         )}
 
@@ -194,7 +306,7 @@ export default function ResultsPage() {
           </Link>
           <button
             onClick={() => {
-              const text = `My MogCheck results:\nOverall: ${results.overall_score.toFixed(1)}/10\nSymmetry: ${results.symmetry_score.toFixed(1)}\nJawline: ${results.jawline_score.toFixed(1)}\nCanthal Tilt: ${results.canthal_tilt.toFixed(1)}\nMidface: ${results.midface_ratio.toFixed(1)}`;
+              const text = `My MogCheck results:\nOverall: ${results.overall_score.toFixed(1)}/10${results.looksmax_rating ? ` (${results.looksmax_rating})` : ""}\nSymmetry: ${results.symmetry_score.toFixed(1)}\nJawline: ${results.jawline_score.toFixed(1)}\nCanthal Tilt: ${results.canthal_tilt.toFixed(1)}\nMidface: ${results.midface_ratio.toFixed(1)}`;
               navigator.clipboard.writeText(text);
             }}
             className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-full font-semibold text-sm border border-white/15 text-white/60 hover:text-white hover:border-white/30 transition-colors"
