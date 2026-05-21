@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --gold: #e99846;
+  --gold-light: #f0b060;
+  --gold-dark: #c47d2e;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-gold: var(--gold);
+  --color-gold-light: var(--gold-light);
+  --color-gold-dark: var(--gold-dark);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Gold gradient text utility */
+.gold-text {
+  background: linear-gradient(135deg, #e99846 0%, #f5c87a 50%, #e99846 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Subtle gold glow */
+.gold-glow {
+  box-shadow: 0 0 30px rgba(233, 152, 70, 0.15), 0 0 60px rgba(233, 152, 70, 0.05);
+}
+
+/* Drag-over highlight */
+.drag-active {
+  border-color: #e99846 !important;
+  background: rgba(233, 152, 70, 0.08) !important;
+}
+
+/* Smooth score bar animation */
+@keyframes fillBar {
+  from { width: 0; }
+  to { width: var(--target-width); }
+}
+
+.score-bar-fill {
+  animation: fillBar 1s ease-out forwards;
+}
+
+/* Fade-in for results cards */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-up {
+  animation: fadeUp 0.5s ease-out forwards;
+}
