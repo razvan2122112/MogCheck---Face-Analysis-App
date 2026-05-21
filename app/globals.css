@@ -309,6 +309,37 @@ footer { padding: 60px 0 40px; border-top: 1px solid var(--line); }
 }
 .fade-up { animation: fadeUp 0.5s ease-out forwards; }
 
+/* ============ SCAN OVERLAY ============ */
+.scan-overlay-bg { background: rgba(0,0,0,0.78); }
+.scan-grid {
+  background-image:
+    linear-gradient(rgba(0,255,65,0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,65,0.07) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+.scan-sweep {
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, rgba(0,255,65,0.9) 50%, transparent 100%);
+  box-shadow: 0 0 10px rgba(0,255,65,0.8), 0 0 22px rgba(0,255,65,0.3);
+  animation: hud-sweep 2s linear infinite;
+}
+@keyframes hud-sweep { 0% { top: 0%; } 100% { top: 100%; } }
+.landmark-dot {
+  opacity: 0;
+  animation: hud-dot 0.4s ease-out forwards;
+}
+@keyframes hud-dot {
+  0%   { opacity: 0; transform: translate(-50%,-50%) scale(0); }
+  65%  { opacity: 1; transform: translate(-50%,-50%) scale(1.8); }
+  100% { opacity: 0.9; transform: translate(-50%,-50%) scale(1); }
+}
+.hud-blink { animation: hud-blink 1s ease-in-out infinite; }
+@keyframes hud-blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+.hud-fade-left  { opacity: 0; animation: hud-fl 0.5s ease-out forwards; }
+.hud-fade-right { opacity: 0; animation: hud-fr 0.5s ease-out forwards; }
+@keyframes hud-fl { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes hud-fr { from { opacity: 0; transform: translateX(8px); }  to { opacity: 1; transform: translateX(0); } }
+
 /* ============ RESPONSIVE ============ */
 @media (max-width: 1280px) {
   .dash { grid-template-columns: 200px 1fr 200px; gap: 14px; }
