@@ -7,44 +7,43 @@ import { useLang, LangToggle } from "../context/language";
 
 type FaceApiModule = typeof import("@vladmandic/face-api");
 
-const LANDMARKS = [
-  { x: 50, y: 11 }, { x: 40, y: 12 }, { x: 60, y: 12 },
-  { x: 24, y: 24 }, { x: 76, y: 24 },
-  { x: 30, y: 27 }, { x: 40, y: 24 }, { x: 60, y: 24 }, { x: 70, y: 27 },
-  { x: 34, y: 33 }, { x: 40, y: 31 }, { x: 46, y: 33 },
-  { x: 54, y: 33 }, { x: 60, y: 31 }, { x: 66, y: 33 },
-  { x: 50, y: 44 }, { x: 45, y: 51 }, { x: 50, y: 52 }, { x: 55, y: 51 },
-  { x: 25, y: 48 }, { x: 75, y: 48 },
-  { x: 37, y: 63 }, { x: 44, y: 61 }, { x: 50, y: 62 }, { x: 56, y: 61 }, { x: 63, y: 63 },
-  { x: 44, y: 68 }, { x: 56, y: 68 }, { x: 50, y: 70 },
-  { x: 20, y: 62 }, { x: 80, y: 62 },
-  { x: 23, y: 72 }, { x: 77, y: 72 },
-  { x: 33, y: 81 }, { x: 67, y: 81 }, { x: 50, y: 87 },
-];
-
 function drawFaceBox(
   ctx: CanvasRenderingContext2D,
   box: { x: number; y: number; width: number; height: number },
   cw: number,
   ch: number
 ) {
-  const pad = Math.min(box.width, box.height) * 0.08;
+  const pad = Math.min(box.width, box.height) * 0.06;
   const x = Math.max(0, box.x - pad);
   const y = Math.max(0, box.y - pad);
   const bw = Math.min(cw - x, box.width + pad * 2);
   const bh = Math.min(ch - y, box.height + pad * 2);
-  const c = Math.min(bw, bh) * 0.16;
+  const c = Math.min(bw, bh) * 0.14;
 
   ctx.strokeStyle = "#00ff41";
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 2.5;
   ctx.lineCap = "round";
   ctx.shadowColor = "#00ff41";
-  ctx.shadowBlur = 10;
+  ctx.shadowBlur = 8;
 
   ctx.beginPath(); ctx.moveTo(x, y + c); ctx.lineTo(x, y); ctx.lineTo(x + c, y); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(x + bw - c, y); ctx.lineTo(x + bw, y); ctx.lineTo(x + bw, y + c); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(x, y + bh - c); ctx.lineTo(x, y + bh); ctx.lineTo(x + c, y + bh); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(x + bw - c, y + bh); ctx.lineTo(x + bw, y + bh); ctx.lineTo(x + bw, y + bh - c); ctx.stroke();
+
+  ctx.shadowBlur = 0;
+}
+
+function drawLandmarks(ctx: CanvasRenderingContext2D, pts: Array<{ x: number; y: number }>) {
+  ctx.fillStyle = "#00ff41";
+  ctx.shadowColor = "#00ff41";
+  ctx.shadowBlur = 5;
+  for (const pt of pts) {
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, 1.8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.shadowBlur = 0;
 }
 
 export default function UploadPage() {
@@ -64,36 +63,13 @@ export default function UploadPage() {
   const [error, setError] = useState<string | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [faceDetected, setFaceDetected] = useState(false);
-  const [scanProgress, setScanProgress] = useState(0);
-  const [hudReady, setHudReady] = useState(false);
 
   useEffect(() => {
     return () => {
       if (detectTimerRef.current) clearTimeout(detectTimerRef.current);
-      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current?.getTracks().forEach((tr) => tr.stop());
     };
   }, []);
-
-  useEffect(() => {
-    if (!loading) {
-      setScanProgress(0);
-      setHudReady(false);
-      return;
-    }
-    const hudTimer = setTimeout(() => setHudReady(true), 400);
-    const start = Date.now();
-    let rafId: number;
-    const tick = () => {
-      const pct = Math.min(92, Math.round(((Date.now() - start) / 8000) * 100));
-      setScanProgress(pct);
-      if (pct < 92) rafId = requestAnimationFrame(tick);
-    };
-    rafId = requestAnimationFrame(tick);
-    return () => {
-      clearTimeout(hudTimer);
-      cancelAnimationFrame(rafId);
-    };
-  }, [loading]);
 
   const handleFile = (f: File) => {
     if (!f.type.startsWith("image/")) {
@@ -120,18 +96,19 @@ export default function UploadPage() {
     }
 
     try {
-      const det = await faceapi.detectSingleFace(
-        video,
-        new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 })
-      );
+      const result = await faceapi
+        .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.45 }))
+        .withFaceLandmarks(true);
+
       if (streamRef.current?.active) {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         const ctx = canvas.getContext("2d");
         if (ctx) {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
-          if (det) {
-            drawFaceBox(ctx, det.box, canvas.width, canvas.height);
+          if (result) {
+            drawFaceBox(ctx, result.detection.box, canvas.width, canvas.height);
+            drawLandmarks(ctx, result.landmarks.positions);
             setFaceDetected(true);
           } else {
             setFaceDetected(false);
@@ -151,7 +128,10 @@ export default function UploadPage() {
     try {
       if (!faceApiRef.current) {
         const faceapi = await import("@vladmandic/face-api");
-        await faceapi.nets.tinyFaceDetector.loadFromUri("/models");
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri("/models"),
+          faceapi.nets.faceLandmark68TinyNet.loadFromUri("/models"),
+        ]);
         faceApiRef.current = faceapi;
       }
       runDetection(faceApiRef.current);
@@ -194,7 +174,7 @@ export default function UploadPage() {
 
   const stopCamera = () => {
     stopFaceDetection();
-    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current?.getTracks().forEach((tr) => tr.stop());
     streamRef.current = null;
     setCameraActive(false);
   };
@@ -294,17 +274,12 @@ export default function UploadPage() {
               className="w-full rounded-3xl block"
               style={{ transform: "scaleX(-1)" }}
             />
-            {/* detection canvas — same CSS mirror as video so coordinates align */}
+            {/* landmark overlay canvas — mirrored to match video */}
             <canvas
               ref={canvasRef}
               className="absolute inset-0 w-full h-full rounded-3xl pointer-events-none"
               style={{ transform: "scaleX(-1)" }}
             />
-            {/* gold corner brackets */}
-            {(["top-3 left-3 border-t-2 border-l-2", "top-3 right-3 border-t-2 border-r-2",
-               "bottom-16 left-3 border-b-2 border-l-2", "bottom-16 right-3 border-b-2 border-r-2"] as const).map((cls, i) => (
-              <div key={i} className={`absolute w-6 h-6 border-[#e99846] ${cls} pointer-events-none`} />
-            ))}
             {/* face detection status badge */}
             <div className="absolute top-3 left-0 right-0 flex justify-center pointer-events-none">
               <span className={`px-3 py-1 rounded-full text-[10px] font-mono tracking-widest border transition-all duration-300 ${
@@ -357,59 +332,14 @@ export default function UploadPage() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={preview} alt="Preview" className="w-full rounded-2xl object-cover max-h-80" />
 
-                {/* scan overlay */}
+                {/* Loading overlay — simple spinner, no fake scanning */}
                 {loading && (
-                  <div className="absolute inset-0 rounded-2xl overflow-hidden scan-overlay-bg">
-                    <div className="absolute inset-0 scan-grid" />
-                    <div className="absolute left-0 right-0 scan-sweep" />
-                    {(["top-2 left-2 border-t-2 border-l-2", "top-2 right-2 border-t-2 border-r-2",
-                       "bottom-2 left-2 border-b-2 border-l-2", "bottom-2 right-2 border-b-2 border-r-2"] as const).map((cls, i) => (
-                      <div key={i} className={`absolute w-5 h-5 border-[#00ff41] ${cls}`} />
-                    ))}
-                    <div className="absolute top-[8%] left-[28%] right-[28%] bottom-[10%] border border-[#00ff41]/20 rounded-full pointer-events-none" />
-                    {LANDMARKS.map((pt, i) => (
-                      <div key={i} className="landmark-dot absolute w-1 h-1 rounded-full bg-[#00ff41]"
-                        style={{ left: `${pt.x}%`, top: `${pt.y}%`, animationDelay: `${i * 45}ms` }} />
-                    ))}
-                    <div className="absolute top-2 left-0 right-0 flex justify-center">
-                      <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.2em] text-[#00ff41] uppercase">
-                        <span className="hud-blink">●</span> {t.upload.scanningBiometrics}
-                      </span>
-                    </div>
-                    <div className="hud-fade-left absolute left-2 top-[28%] flex flex-col gap-2"
-                      style={{ animationDelay: hudReady ? "0ms" : "9999s" }}>
-                      {[{ label: t.upload.hudSymmetry, pct: 72 }, { label: t.upload.hudJawline, pct: 85 }].map((m) => (
-                        <div key={m.label} className="flex flex-col gap-0.5">
-                          <span className="font-mono text-[8px] tracking-[0.15em] text-[#00ff41]/70 uppercase">{m.label}</span>
-                          <div className="w-16 h-1 rounded-full bg-[#00ff41]/15 overflow-hidden">
-                            <div className="h-full rounded-full bg-[#00ff41] transition-all duration-1000 ease-out"
-                              style={{ width: hudReady ? `${m.pct}%` : "0%" }} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="hud-fade-right absolute right-2 top-[28%] flex flex-col gap-2 items-end"
-                      style={{ animationDelay: hudReady ? "0ms" : "9999s" }}>
-                      {[{ label: t.upload.hudCanthal, pct: 68 }, { label: t.upload.hudMidface, pct: 79 }].map((m) => (
-                        <div key={m.label} className="flex flex-col gap-0.5 items-end">
-                          <span className="font-mono text-[8px] tracking-[0.15em] text-[#00ff41]/70 uppercase">{m.label}</span>
-                          <div className="w-16 h-1 rounded-full bg-[#00ff41]/15 overflow-hidden">
-                            <div className="h-full rounded-full bg-[#00ff41] transition-all duration-1000 ease-out"
-                              style={{ width: hudReady ? `${m.pct}%` : "0%" }} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="absolute bottom-2 left-3 right-3">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="font-mono text-[9px] tracking-[0.2em] text-[#00ff41]/70 uppercase">{t.upload.processing}</span>
-                        <span className="font-mono text-[9px] text-[#00ff41]">{scanProgress}%</span>
-                      </div>
-                      <div className="h-0.5 w-full rounded-full bg-[#00ff41]/15 overflow-hidden">
-                        <div className="h-full rounded-full bg-[#00ff41] transition-all duration-200 ease-linear"
-                          style={{ width: `${scanProgress}%` }} />
-                      </div>
-                    </div>
+                  <div className="absolute inset-0 rounded-2xl flex flex-col items-center justify-center gap-3 bg-black/60 backdrop-blur-sm">
+                    <svg className="w-8 h-8 animate-spin text-[#e99846]" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                      <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    <span className="font-mono text-[11px] tracking-[0.2em] text-[#e99846] uppercase">{t.upload.analyzing}</span>
                   </div>
                 )}
 
