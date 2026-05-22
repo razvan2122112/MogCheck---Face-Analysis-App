@@ -27,6 +27,8 @@ JSON schema:
     "lifestyle": [<string>, ...],
     "grooming": [<string>, ...]
   },
+  "perfect_version": <string: 2-3 sentences describing SPECIFICALLY what this person could look like at their absolute maximum potential after 60-90 days of dedicated looksmaxxing — name the key features that will improve most, give rough improvement estimates, project a final score range. Be motivational, specific, and grounded.>,
+  "potential_score": <number 0-10: their realistic achievable score after 60-90 days with the right program. Must be overall_score + 0.5 minimum, + 2.0 maximum. High-scoring faces gain less (0.5-0.8 pts), lower-scoring faces with fixable flaws gain more (1.2-2.0 pts).>,
   "summary": <string, 2-3 sentences>
 }
 
@@ -64,11 +66,13 @@ improvement_plan — be highly specific:
 - lifestyle: Sleep hygiene (7-9 hrs, elevated pillow, no face-down sleeping for symmetry), low-sodium diet to reduce facial puffiness, 3L+ water daily, zinc and vitamin C for skin, body fat reduction if applicable, no alcohol (causes puffiness), stop smoking (accelerates aging). Give 4-5 specific changes.
 - grooming: Specific haircut styles for their face shape (e.g., "textured crop suits your round face — adds vertical length"), beard or stubble advice based on jaw structure, eyebrow shaping (threading or waxing), skincare routine order (cleanser → toner → serum → moisturizer → SPF), under-eye concealer or patches if needed. Give 4-5 tips.
 
-Be precise and honest. Use decimal values (e.g., 7.3, 8.1). A weak jaw is 3-4, not 6. Use looksmaxxing terminology throughout.`;
+Be precise and honest. Use decimal values (e.g., 7.3, 8.1). A weak jaw is 3-4, not 6. Use looksmaxxing terminology throughout.
+
+For perfect_version: make it compelling and specific. Reference the actual face features you see. Example format: "With consistent mewing and a targeted jawline program, your jaw definition could improve by 25–30%, your skin texture reach 8.5/10 with the right retinoid routine, and your canthal tilt lift by 1–2°, pushing your overall score from [current] to [potential] within 90 days."`;
 
 const FRENCH_SUFFIX = `
 
-LANGUAGE REQUIREMENT: All string values in the JSON response MUST be written in French. This includes: every "flaw" name, every "fix" description, every string in "improvements", every string in "improvement_plan" (skincare, exercises, lifestyle, grooming), and the "summary". Keep the "severity" field values as-is ("mild", "moderate", "severe") and the "looksmax_rating" value in English (these are internationally recognised community terms). Every other human-readable text must be in French.`;
+LANGUAGE REQUIREMENT: All string values in the JSON response MUST be written in French. This includes: every "flaw" name, every "fix" description, every string in "improvements", every string in "improvement_plan" (skincare, exercises, lifestyle, grooming), the "summary", and the "perfect_version". Keep the "severity" field values as-is ("mild", "moderate", "severe") and the "looksmax_rating" value in English (these are internationally recognised community terms). Every other human-readable text must be in French.`;
 
 interface LandmarkMetrics {
   symmetry: number;
