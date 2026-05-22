@@ -217,7 +217,7 @@ export default function Home() {
         const side = ox < -6 && bx < -6 ? "L" : ox > 6 && bx > 6 ? "R" : "M";
         const db = Math.max(0, Math.min(1, (midZ + 60) / 140));
         const ba = (0.35 + db * 0.55) * alpha;
-        ctx!.strokeStyle = side === "L" ? `rgba(95,208,191,${ba.toFixed(3)})` : side === "R" ? `rgba(233,184,100,${ba.toFixed(3)})` : `rgba(245,243,238,${(ba * 0.55).toFixed(3)})`;
+        ctx!.strokeStyle = side === "L" ? `rgba(95,208,191,${ba.toFixed(3)})` : side === "R" ? `rgba(251,146,60,${ba.toFixed(3)})` : `rgba(245,243,238,${(ba * 0.55).toFixed(3)})`;
         ctx!.lineWidth = 0.9 + db * 0.5;
         ctx!.beginPath(); ctx!.moveTo(pa.sx, pa.sy); ctx!.lineTo(pb.sx, pb.sy); ctx!.stroke();
       }
@@ -230,7 +230,7 @@ export default function Home() {
         const side = ix < -6 ? "L" : ix > 6 ? "R" : "M";
         const db = Math.max(0.15, Math.min(1, (n.r[2] + 60) / 140));
         const r = 1.5 + db * 2.2;
-        const fill = side === "L" ? `rgba(95,208,191,${(db * 0.85 + 0.15).toFixed(3)})` : side === "R" ? `rgba(233,184,100,${(db * 0.85 + 0.15).toFixed(3)})` : `rgba(245,243,238,${(db * 0.85 + 0.15).toFixed(3)})`;
+        const fill = side === "L" ? `rgba(95,208,191,${(db * 0.85 + 0.15).toFixed(3)})` : side === "R" ? `rgba(251,146,60,${(db * 0.85 + 0.15).toFixed(3)})` : `rgba(245,243,238,${(db * 0.85 + 0.15).toFixed(3)})`;
         ctx!.fillStyle = fill; ctx!.beginPath(); ctx!.arc(n.p!.sx, n.p!.sy, r, 0, Math.PI * 2); ctx!.fill();
         if (db > 0.6) {
           const g = ctx!.createRadialGradient(n.p!.sx, n.p!.sy, 0, n.p!.sx, n.p!.sy, r * 4);
@@ -369,7 +369,7 @@ export default function Home() {
                       <path d="M 10 80 Q 60 70 96 50" stroke="var(--teal)" strokeWidth="1.6" fill="none" strokeLinecap="round"/>
                       <path d="M 104 50 L 190 78" stroke="var(--gold)" strokeWidth="1.6" fill="none" strokeLinecap="round"/>
                       <line x1="10" y1="80" x2="190" y2="80" stroke="rgba(255,255,255,0.08)" strokeDasharray="2 3"/>
-                      <path d="M 80 64 A 18 18 0 0 1 116 60" stroke="rgba(233,184,100,0.5)" strokeWidth="0.8" fill="none" strokeDasharray="2 2"/>
+                      <path d="M 80 64 A 18 18 0 0 1 116 60" stroke="rgba(236,72,153,0.5)" strokeWidth="0.8" fill="none" strokeDasharray="2 2"/>
                       <text x="58" y="50">45°</text>
                       <text x="124" y="44" fill="var(--gold)">60°</text>
                       <circle cx="100" cy="50" r="2.4" fill="var(--fg)"/>
@@ -423,7 +423,7 @@ export default function Home() {
                     <div className="eye-card">
                       <svg viewBox="0 0 80 32" fill="none">
                         <path d="M 6 18 Q 40 6 74 22" stroke="var(--gold)" strokeWidth="1.6" strokeLinecap="round" fill="none"/>
-                        <ellipse cx="40" cy="18" rx="10" ry="6" fill="rgba(233,184,100,0.18)" stroke="var(--gold)" strokeWidth="0.8"/>
+                        <ellipse cx="40" cy="18" rx="10" ry="6" fill="rgba(236,72,153,0.18)" stroke="var(--gold)" strokeWidth="0.8"/>
                         <circle cx="40" cy="18" r="3" fill="var(--gold)"/>
                       </svg>
                       <span>Right · +5°</span>
@@ -560,14 +560,14 @@ export default function Home() {
                   <svg viewBox="0 0 220 110" preserveAspectRatio="none">
                     <defs>
                       <linearGradient id="tg" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0" stopColor="rgba(233,184,100,0.4)"/>
-                        <stop offset="1" stopColor="rgba(233,184,100,0)"/>
+                        <stop offset="0" stopColor="rgba(236,72,153,0.4)"/>
+                        <stop offset="1" stopColor="rgba(236,72,153,0)"/>
                       </linearGradient>
                     </defs>
                     <path d="M0,80 L30,72 L60,75 L90,60 L120,55 L150,40 L180,32 L220,18 L220,110 L0,110 Z" fill="url(#tg)"/>
                     <path d="M0,80 L30,72 L60,75 L90,60 L120,55 L150,40 L180,32 L220,18" stroke="var(--gold)" strokeWidth="1.6" fill="none"/>
                     <circle cx="220" cy="18" r="3.5" fill="var(--gold)"/>
-                    <circle cx="220" cy="18" r="7"   fill="rgba(233,184,100,0.18)"/>
+                    <circle cx="220" cy="18" r="7"   fill="rgba(236,72,153,0.18)"/>
                   </svg>
                 </div>
               </div>
