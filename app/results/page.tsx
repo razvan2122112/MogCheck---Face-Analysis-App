@@ -117,7 +117,7 @@ export default function ResultsPage() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    const raw = sessionStorage.getItem("mogcheck_results");
+    const raw = sessionStorage.getItem("mogrank_results");
     if (!raw) {
       router.replace("/upload");
       return;
@@ -161,7 +161,7 @@ export default function ResultsPage() {
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-4 border-b border-white/5">
         <Link href="/" className="text-xl font-bold tracking-widest gold-text">
-          MOGCHECK
+          MOGRANK
         </Link>
         <Link
           href="/upload"
@@ -306,7 +306,7 @@ export default function ResultsPage() {
           </Link>
           <button
             onClick={() => {
-              const text = `My MogCheck results:\nOverall: ${results.overall_score.toFixed(1)}/10${results.looksmax_rating ? ` (${results.looksmax_rating})` : ""}\nSymmetry: ${results.symmetry_score.toFixed(1)}\nJawline: ${results.jawline_score.toFixed(1)}\nCanthal Tilt: ${results.canthal_tilt.toFixed(1)}\nMidface: ${results.midface_ratio.toFixed(1)}`;
+              const text = `My MogRank results:\nOverall: ${results.overall_score.toFixed(1)}/10${results.looksmax_rating ? ` (${results.looksmax_rating})` : ""}\nSymmetry: ${results.symmetry_score.toFixed(1)}\nJawline: ${results.jawline_score.toFixed(1)}\nCanthal Tilt: ${results.canthal_tilt.toFixed(1)}\nMidface: ${results.midface_ratio.toFixed(1)}`;
               navigator.clipboard.writeText(text);
             }}
             className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-full font-semibold text-sm border border-white/15 text-white/60 hover:text-white hover:border-white/30 transition-colors"

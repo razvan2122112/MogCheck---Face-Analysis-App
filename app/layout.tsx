@@ -18,7 +18,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MogCheck — Discover Your True Potential",
+  title: "MogRank — Discover Your True Potential",
   description: "AI-powered facial analysis. Get your score, find your weak points, and unlock your best self — backed by 40+ biometric markers.",
   keywords: ["face analysis", "facial symmetry", "jawline", "aesthetic score", "AI", "mog score"],
 };

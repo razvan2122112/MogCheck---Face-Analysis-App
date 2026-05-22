@@ -256,7 +256,7 @@ export default function UploadPage() {
       }
 
       const data = await res.json();
-      sessionStorage.setItem("mogcheck_results", JSON.stringify(data));
+      sessionStorage.setItem("mogrank_results", JSON.stringify(data));
       router.push("/results");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -268,7 +268,7 @@ export default function UploadPage() {
     <main className="min-h-screen bg-[#0a0a0a] text-[#ededed] flex flex-col">
       <nav className="flex items-center justify-between px-6 py-4 border-b border-white/5">
         <Link href="/" className="text-xl font-bold tracking-widest gold-text">
-          MOGCHECK
+          MOGRANK
         </Link>
       </nav>
 

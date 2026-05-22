@@ -300,7 +300,7 @@ export default function Home() {
         <div className="wrap nav-inner">
           <a className="brand" href="#">
             <span className="brand-mark">M</span>
-            <span>MogCheck</span>
+            <span>MogRank</span>
           </a>
           <div className="nav-links">
             <a href="#features">Features</a>
@@ -651,7 +651,7 @@ export default function Home() {
             <div>
               <a className="brand" href="#">
                 <span className="brand-mark">M</span>
-                <span>MogCheck</span>
+                <span>MogRank</span>
               </a>
               <p className="foot-blurb">The mirror that actually tells you the truth — and tells you what to do about it.</p>
             </div>
@@ -684,7 +684,7 @@ export default function Home() {
             </div>
           </div>
           <div className="foot-bot">
-            <div>© 2026 MogCheck Labs. All photos processed on-device where possible.</div>
+            <div>© 2026 MogRank Labs. All photos processed on-device where possible.</div>
             <div className="mono" style={{ letterSpacing: "0.1em" }}>v3.2 · MOG-ENGINE</div>
           </div>
         </div>
