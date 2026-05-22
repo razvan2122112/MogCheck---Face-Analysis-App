@@ -66,9 +66,19 @@ improvement_plan — be highly specific:
 
 Be precise and honest. Use decimal values (e.g., 7.3, 8.1). A weak jaw is 3-4, not 6. Use looksmaxxing terminology throughout.`;
 
+interface LandmarkMetrics {
+  symmetry: number;
+  canthal: number;
+  jawGrade: string;
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { image, mimeType } = await req.json();
+    const { image, mimeType, landmarkMetrics } = await req.json() as {
+      image: string;
+      mimeType: string;
+      landmarkMetrics?: LandmarkMetrics;
+    };
 
     if (!image || !mimeType) {
       return NextResponse.json({ error: "Missing image or mimeType" }, { status: 400 });
@@ -80,6 +90,17 @@ export async function POST(req: NextRequest) {
     const validMimeTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
     if (!validMimeTypes.includes(mimeType)) {
       return NextResponse.json({ error: "Unsupported image type. Use JPG, PNG, or WEBP." }, { status: 400 });
+    }
+
+    let userText = "Analyze this face with full looksmaxxing assessment and return the JSON.";
+    if (landmarkMetrics) {
+      userText =
+        `Analyze this face with full looksmaxxing assessment.\n` +
+        `Computer vision pre-analysis (MediaPipe 468-point FaceMesh) measured:\n` +
+        `- Facial symmetry: ${landmarkMetrics.symmetry}%\n` +
+        `- Average canthal tilt: ${landmarkMetrics.canthal > 0 ? "+" : ""}${landmarkMetrics.canthal}°\n` +
+        `- Jaw/face width ratio grade: ${landmarkMetrics.jawGrade}\n` +
+        `Use these precise landmark measurements to calibrate your symmetry_score and canthal_tilt scores. Return the JSON.`;
     }
 
     const response = await client.messages.create({
@@ -100,7 +121,7 @@ export async function POST(req: NextRequest) {
             },
             {
               type: "text",
-              text: "Analyze this face with full looksmaxxing assessment and return the JSON.",
+              text: userText,
             },
           ],
         },
