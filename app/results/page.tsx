@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useLang, LangToggle } from "../context/language";
+import type { Translations } from "../lib/translations";
 
 interface DetectedFlaw {
   flaw: string;
@@ -65,13 +67,13 @@ function ScoreBar({ label, score, delay = 0 }: { label: string; score: number; d
   );
 }
 
-function RatingLabel({ score }: { score: number }) {
-  if (score >= 9) return <span className="text-[#4ade80]">Elite</span>;
-  if (score >= 8) return <span className="text-[#86efac]">Very High</span>;
-  if (score >= 7) return <span className="text-[#e99846]">Above Average</span>;
-  if (score >= 6) return <span className="text-[#f0b060]">Average</span>;
-  if (score >= 5) return <span className="text-[#fb923c]">Below Average</span>;
-  return <span className="text-[#f87171]">Needs Work</span>;
+function RatingLabel({ score, ratings }: { score: number; ratings: Translations["results"]["ratings"] }) {
+  if (score >= 9) return <span className="text-[#4ade80]">{ratings.elite}</span>;
+  if (score >= 8) return <span className="text-[#86efac]">{ratings.veryHigh}</span>;
+  if (score >= 7) return <span className="text-[#e99846]">{ratings.aboveAverage}</span>;
+  if (score >= 6) return <span className="text-[#f0b060]">{ratings.average}</span>;
+  if (score >= 5) return <span className="text-[#fb923c]">{ratings.belowAverage}</span>;
+  return <span className="text-[#f87171]">{ratings.needsWork}</span>;
 }
 
 const SEVERITY_STYLES: Record<string, string> = {
@@ -113,6 +115,7 @@ function PlanSection({
 
 export default function ResultsPage() {
   const router = useRouter();
+  const { t } = useLang();
   const [results, setResults] = useState<AnalysisResult | null>(null);
   const [loaded, setLoaded] = useState(false);
 
@@ -139,20 +142,20 @@ export default function ResultsPage() {
   }
 
   const metrics = [
-    { label: "Facial Symmetry", score: results.symmetry_score },
-    { label: "Jawline Definition", score: results.jawline_score },
-    { label: "Canthal Tilt", score: results.canthal_tilt },
-    { label: "Midface Ratio", score: results.midface_ratio },
-    ...(results.facial_thirds != null ? [{ label: "Facial Thirds Balance", score: results.facial_thirds }] : []),
-    ...(results.skin_quality != null ? [{ label: "Skin Quality", score: results.skin_quality }] : []),
+    { label: t.results.metrics.facialSymmetry, score: results.symmetry_score },
+    { label: t.results.metrics.jawlineDefinition, score: results.jawline_score },
+    { label: t.results.metrics.canthalTilt, score: results.canthal_tilt },
+    { label: t.results.metrics.midfaceRatio, score: results.midface_ratio },
+    ...(results.facial_thirds != null ? [{ label: t.results.metrics.facialThirds, score: results.facial_thirds }] : []),
+    ...(results.skin_quality != null ? [{ label: t.results.metrics.skinQuality, score: results.skin_quality }] : []),
   ];
 
   const planSections = results.improvement_plan
     ? [
-        { icon: "🧴", title: "Skincare", items: results.improvement_plan.skincare, accentColor: "#60a5fa", delay: 800 },
-        { icon: "💪", title: "Exercises", items: results.improvement_plan.exercises, accentColor: "#4ade80", delay: 900 },
-        { icon: "🌙", title: "Lifestyle", items: results.improvement_plan.lifestyle, accentColor: "#a78bfa", delay: 1000 },
-        { icon: "✂️", title: "Grooming", items: results.improvement_plan.grooming, accentColor: "#e99846", delay: 1100 },
+        { icon: "🧴", title: t.results.plan.skincare, items: results.improvement_plan.skincare, accentColor: "#60a5fa", delay: 800 },
+        { icon: "💪", title: t.results.plan.exercises, items: results.improvement_plan.exercises, accentColor: "#4ade80", delay: 900 },
+        { icon: "🌙", title: t.results.plan.lifestyle, items: results.improvement_plan.lifestyle, accentColor: "#a78bfa", delay: 1000 },
+        { icon: "✂️", title: t.results.plan.grooming, items: results.improvement_plan.grooming, accentColor: "#e99846", delay: 1100 },
       ]
     : [];
 
@@ -163,22 +166,25 @@ export default function ResultsPage() {
         <Link href="/" className="text-xl font-bold tracking-widest gold-text">
           MOGRANK
         </Link>
-        <Link
-          href="/upload"
-          className="text-sm text-white/40 hover:text-white/70 transition-colors"
-        >
-          ← New Analysis
-        </Link>
+        <div className="flex items-center gap-4">
+          <LangToggle className="flex items-center text-[11px] font-bold tracking-[0.08em] text-white/60 hover:text-white/90 transition-opacity" />
+          <Link
+            href="/upload"
+            className="text-sm text-white/40 hover:text-white/70 transition-colors"
+          >
+            {t.results.newAnalysis}
+          </Link>
+        </div>
       </nav>
 
       <div className="flex-1 w-full max-w-2xl mx-auto px-6 py-12">
         {/* Header */}
         <div className="text-center mb-10 fade-up">
           <p className="text-xs uppercase tracking-[0.3em] text-[#e99846] mb-3 font-semibold">
-            Your Results
+            {t.results.yourResults}
           </p>
           <h1 className="text-4xl sm:text-5xl font-black mb-2">
-            Overall Score
+            {t.results.overallScore}
           </h1>
 
           {/* Big score circle */}
@@ -209,11 +215,11 @@ export default function ResultsPage() {
           </div>
 
           <p className="text-xl font-bold">
-            Rating: <RatingLabel score={results.overall_score} />
+            {t.results.rating} <RatingLabel score={results.overall_score} ratings={t.results.ratings} />
           </p>
           {results.looksmax_rating && (
             <p className="mt-2 text-xs uppercase tracking-widest text-white/30">
-              Looksmax tier: <span className="text-[#e99846]/70">{results.looksmax_rating}</span>
+              {t.results.looksmaxTier} <span className="text-[#e99846]/70">{results.looksmax_rating}</span>
             </p>
           )}
           {results.summary && (
@@ -226,7 +232,7 @@ export default function ResultsPage() {
         {/* Score breakdown */}
         <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 mb-6">
           <h2 className="font-bold text-sm uppercase tracking-widest text-white/40 mb-5">
-            Metric Breakdown
+            {t.results.metricBreakdown}
           </h2>
           <div className="flex flex-col gap-5">
             {metrics.map((m, i) => (
@@ -241,7 +247,7 @@ export default function ResultsPage() {
             className="rounded-2xl border border-red-500/10 bg-red-500/[0.03] p-6 mb-6 fade-up"
             style={{ animationDelay: "500ms", animationFillMode: "both" }}
           >
-            <h2 className="font-bold text-sm uppercase tracking-widest text-red-400/60 mb-4">Detected Flaws</h2>
+            <h2 className="font-bold text-sm uppercase tracking-widest text-red-400/60 mb-4">{t.results.detectedFlaws}</h2>
             <div className="flex flex-col gap-3">
               {results.detected_flaws.map((item, i) => (
                 <div key={i} className="flex items-start gap-3">
@@ -265,7 +271,7 @@ export default function ResultsPage() {
             style={{ animationDelay: "620ms", animationFillMode: "both" }}
           >
             <h2 className="font-bold text-sm uppercase tracking-widest text-[#e99846]/70 mb-4">
-              Quick Wins
+              {t.results.quickWins}
             </h2>
             <ul className="flex flex-col gap-3">
               {results.improvements.map((item, i) => (
@@ -285,8 +291,8 @@ export default function ResultsPage() {
               className="mb-5 fade-up"
               style={{ animationDelay: "750ms", animationFillMode: "both" }}
             >
-              <p className="text-xs uppercase tracking-[0.3em] text-[#e99846] mb-1 font-semibold">Personalized</p>
-              <h2 className="text-2xl font-black">Improvement Plan</h2>
+              <p className="text-xs uppercase tracking-[0.3em] text-[#e99846] mb-1 font-semibold">{t.results.personalized}</p>
+              <h2 className="text-2xl font-black">{t.results.improvementPlan}</h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {planSections.map((s) => (
@@ -302,21 +308,21 @@ export default function ResultsPage() {
             href="/upload"
             className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-full font-semibold text-sm bg-[#e99846] text-[#0a0a0a] hover:bg-[#f0b060] transition-all hover:scale-105"
           >
-            Analyze Another Photo
+            {t.results.analyzeAnother}
           </Link>
           <button
             onClick={() => {
-              const text = `My MogRank results:\nOverall: ${results.overall_score.toFixed(1)}/10${results.looksmax_rating ? ` (${results.looksmax_rating})` : ""}\nSymmetry: ${results.symmetry_score.toFixed(1)}\nJawline: ${results.jawline_score.toFixed(1)}\nCanthal Tilt: ${results.canthal_tilt.toFixed(1)}\nMidface: ${results.midface_ratio.toFixed(1)}`;
+              const text = `${t.results.copyText}\nOverall: ${results.overall_score.toFixed(1)}/10${results.looksmax_rating ? ` (${results.looksmax_rating})` : ""}\n${t.results.metrics.facialSymmetry}: ${results.symmetry_score.toFixed(1)}\n${t.results.metrics.jawlineDefinition}: ${results.jawline_score.toFixed(1)}\n${t.results.metrics.canthalTilt}: ${results.canthal_tilt.toFixed(1)}\n${t.results.metrics.midfaceRatio}: ${results.midface_ratio.toFixed(1)}`;
               navigator.clipboard.writeText(text);
             }}
             className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-full font-semibold text-sm border border-white/15 text-white/60 hover:text-white hover:border-white/30 transition-colors"
           >
-            Copy Results
+            {t.results.copyResults}
           </button>
         </div>
 
         <p className="mt-8 text-center text-xs text-white/20">
-          For entertainment purposes only. Results are AI-generated estimates, not medical assessments.
+          {t.results.disclaimer}
         </p>
       </div>
     </main>

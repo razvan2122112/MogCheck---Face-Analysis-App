@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useLang, LangToggle } from "../context/language";
 
 type FaceApiModule = typeof import("@vladmandic/face-api");
 
@@ -48,6 +49,7 @@ function drawFaceBox(
 
 export default function UploadPage() {
   const router = useRouter();
+  const { t } = useLang();
   const inputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -95,11 +97,11 @@ export default function UploadPage() {
 
   const handleFile = (f: File) => {
     if (!f.type.startsWith("image/")) {
-      setError("Please upload an image file (JPG, PNG, WEBP).");
+      setError(t.upload.errImageType);
       return;
     }
     if (f.size > 10 * 1024 * 1024) {
-      setError("Image must be under 10 MB.");
+      setError(t.upload.errImageSize);
       return;
     }
     setError(null);
@@ -186,7 +188,7 @@ export default function UploadPage() {
         }
       }, 50);
     } catch {
-      setError("Camera access denied. Please allow camera permissions and try again.");
+      setError(t.upload.errCamera);
     }
   };
 
@@ -252,14 +254,14 @@ export default function UploadPage() {
 
       if (!res.ok) {
         const { error: msg } = await res.json();
-        throw new Error(msg ?? "Analysis failed.");
+        throw new Error(msg ?? t.upload.errAnalysisFailed);
       }
 
       const data = await res.json();
       sessionStorage.setItem("mogrank_results", JSON.stringify(data));
       router.push("/results");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(err instanceof Error ? err.message : t.upload.errSomethingWrong);
       setLoading(false);
     }
   };
@@ -270,13 +272,14 @@ export default function UploadPage() {
         <Link href="/" className="text-xl font-bold tracking-widest gold-text">
           MOGRANK
         </Link>
+        <LangToggle className="flex items-center text-[11px] font-bold tracking-[0.08em] text-white/60 hover:text-white/90 transition-opacity" />
       </nav>
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-16">
-        <p className="text-xs uppercase tracking-[0.3em] text-[#e99846] mb-3 font-semibold">Step 1</p>
-        <h1 className="text-3xl sm:text-4xl font-black text-center mb-3">Upload Your Photo</h1>
+        <p className="text-xs uppercase tracking-[0.3em] text-[#e99846] mb-3 font-semibold">{t.upload.step}</p>
+        <h1 className="text-3xl sm:text-4xl font-black text-center mb-3">{t.upload.title}</h1>
         <p className="text-white/40 text-center mb-10 max-w-sm">
-          Use a front-facing photo in good lighting. No hats, sunglasses, or heavy filters.
+          {t.upload.subtitle}
         </p>
 
         {/* Camera view */}
@@ -309,7 +312,7 @@ export default function UploadPage() {
                   ? "bg-[#00ff41]/10 text-[#00ff41] border-[#00ff41]/30"
                   : "bg-black/40 text-white/30 border-white/10"
               }`}>
-                {faceDetected ? "✓ FACE DETECTED" : "ALIGN YOUR FACE"}
+                {faceDetected ? t.upload.faceDetected : t.upload.alignFace}
               </span>
             </div>
             {/* capture + cancel */}
@@ -318,7 +321,7 @@ export default function UploadPage() {
                 onClick={stopCamera}
                 className="px-5 py-2 rounded-full text-sm font-semibold border border-white/20 text-white/60 hover:text-white bg-black/60 transition-colors"
               >
-                Cancel
+                {t.upload.cancel}
               </button>
               <button
                 onClick={capturePhoto}
@@ -370,12 +373,12 @@ export default function UploadPage() {
                     ))}
                     <div className="absolute top-2 left-0 right-0 flex justify-center">
                       <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.2em] text-[#00ff41] uppercase">
-                        <span className="hud-blink">●</span> Scanning Biometrics
+                        <span className="hud-blink">●</span> {t.upload.scanningBiometrics}
                       </span>
                     </div>
                     <div className="hud-fade-left absolute left-2 top-[28%] flex flex-col gap-2"
                       style={{ animationDelay: hudReady ? "0ms" : "9999s" }}>
-                      {[{ label: "SYMMETRY", pct: 72 }, { label: "JAWLINE", pct: 85 }].map((m) => (
+                      {[{ label: t.upload.hudSymmetry, pct: 72 }, { label: t.upload.hudJawline, pct: 85 }].map((m) => (
                         <div key={m.label} className="flex flex-col gap-0.5">
                           <span className="font-mono text-[8px] tracking-[0.15em] text-[#00ff41]/70 uppercase">{m.label}</span>
                           <div className="w-16 h-1 rounded-full bg-[#00ff41]/15 overflow-hidden">
@@ -387,7 +390,7 @@ export default function UploadPage() {
                     </div>
                     <div className="hud-fade-right absolute right-2 top-[28%] flex flex-col gap-2 items-end"
                       style={{ animationDelay: hudReady ? "0ms" : "9999s" }}>
-                      {[{ label: "CANTHAL", pct: 68 }, { label: "MIDFACE", pct: 79 }].map((m) => (
+                      {[{ label: t.upload.hudCanthal, pct: 68 }, { label: t.upload.hudMidface, pct: 79 }].map((m) => (
                         <div key={m.label} className="flex flex-col gap-0.5 items-end">
                           <span className="font-mono text-[8px] tracking-[0.15em] text-[#00ff41]/70 uppercase">{m.label}</span>
                           <div className="w-16 h-1 rounded-full bg-[#00ff41]/15 overflow-hidden">
@@ -399,7 +402,7 @@ export default function UploadPage() {
                     </div>
                     <div className="absolute bottom-2 left-3 right-3">
                       <div className="flex justify-between items-center mb-1">
-                        <span className="font-mono text-[9px] tracking-[0.2em] text-[#00ff41]/70 uppercase">Processing</span>
+                        <span className="font-mono text-[9px] tracking-[0.2em] text-[#00ff41]/70 uppercase">{t.upload.processing}</span>
                         <span className="font-mono text-[9px] text-[#00ff41]">{scanProgress}%</span>
                       </div>
                       <div className="h-0.5 w-full rounded-full bg-[#00ff41]/15 overflow-hidden">
@@ -432,10 +435,10 @@ export default function UploadPage() {
                   </svg>
                 </div>
                 <div>
-                  <p className="font-semibold text-white/80">Drop your photo here</p>
-                  <p className="text-sm text-white/35 mt-1">or <span className="text-[#e99846]">click to browse</span></p>
+                  <p className="font-semibold text-white/80">{t.upload.dropHere}</p>
+                  <p className="text-sm text-white/35 mt-1">or <span className="text-[#e99846]">{t.upload.clickBrowse}</span></p>
                 </div>
-                <p className="text-xs text-white/25">JPG, PNG, WEBP · Max 10 MB</p>
+                <p className="text-xs text-white/25">{t.upload.fileHint}</p>
               </div>
             )}
           </div>
@@ -458,9 +461,9 @@ export default function UploadPage() {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z" />
               </svg>
-              Analyzing…
+              {t.upload.analyzing}
             </span>
-          ) : "Analyze My Face →"}
+          ) : t.upload.analyzeBtn}
         </button>
 
         {!file && !loading && !cameraActive && (
@@ -472,16 +475,16 @@ export default function UploadPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
             </svg>
-            Use Camera
+            {t.upload.useCamera}
           </button>
         )}
 
         {!cameraActive && !loading && (
           <div className="mt-12 max-w-md w-full grid grid-cols-3 gap-4">
             {[
-              { icon: "☀", label: "Good lighting", sub: "Natural or front-lit" },
-              { icon: "👤", label: "Face forward", sub: "Direct camera angle" },
-              { icon: "😐", label: "Neutral expression", sub: "Relaxed, mouth closed" },
+              { icon: "☀", label: t.upload.tip1Label, sub: t.upload.tip1Sub },
+              { icon: "👤", label: t.upload.tip2Label, sub: t.upload.tip2Sub },
+              { icon: "😐", label: t.upload.tip3Label, sub: t.upload.tip3Sub },
             ].map((tip) => (
               <div key={tip.label} className="flex flex-col items-center text-center gap-1 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
                 <span className="text-xl">{tip.icon}</span>

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useLang } from "./context/language";
 
 export default function Home() {
   const surfaceRef = useRef<HTMLCanvasElement>(null);
@@ -9,6 +10,7 @@ export default function Home() {
   const panelRef   = useRef<HTMLDivElement>(null);
   const scoreRef   = useRef<HTMLSpanElement>(null);
   const [billing, setBilling] = useState<"month" | "year">("month");
+  const { lang, setLang, t } = useLang();
 
   // ── Dotted wave surface ──────────────────────────────────────────────────
   useEffect(() => {
@@ -303,14 +305,24 @@ export default function Home() {
             <span>MogRank</span>
           </a>
           <div className="nav-links">
-            <a href="#features">Features</a>
-            <a href="#how">How it works</a>
-            <a href="#pricing">Pricing</a>
-            <a href="#">Science</a>
+            <a href="#features">{t.nav.features}</a>
+            <a href="#how">{t.nav.howItWorks}</a>
+            <a href="#pricing">{t.nav.pricing}</a>
+            <a href="#">{t.nav.science}</a>
           </div>
           <div className="nav-cta">
-            <a href="#" className="btn btn-ghost" style={{ height: 38, padding: "0 14px", fontSize: 13 }}>Sign in</a>
-            <Link href="/upload" className="btn btn-gold" style={{ height: 38, padding: "0 16px", fontSize: 13 }}>Try Free</Link>
+            <button
+              onClick={() => setLang(lang === "en" ? "fr" : "en")}
+              className="btn btn-ghost"
+              style={{ height: 38, padding: "0 12px", fontSize: 12, fontWeight: 700, letterSpacing: "0.06em" }}
+              aria-label="Toggle language"
+            >
+              <span style={{ opacity: lang === "en" ? 1 : 0.35 }}>EN</span>
+              <span style={{ opacity: 0.3, margin: "0 3px" }}>/</span>
+              <span style={{ opacity: lang === "fr" ? 1 : 0.35 }}>FR</span>
+            </button>
+            <a href="#" className="btn btn-ghost" style={{ height: 38, padding: "0 14px", fontSize: 13 }}>{t.nav.signIn}</a>
+            <Link href="/upload" className="btn btn-gold" style={{ height: 38, padding: "0 16px", fontSize: 13 }}>{t.nav.tryFree}</Link>
           </div>
         </div>
       </nav>
@@ -321,18 +333,18 @@ export default function Home() {
           <div className="hero-text">
             <div className="eyebrow">
               <span className="dot" />
-              <span>Now with v3 facial harmony model</span>
+              <span>{t.hero.eyebrow}</span>
             </div>
             <h1 className="hero-title">
-              Discover<br />Your <span className="serif it em">True</span><br />Potential.
+              {t.hero.titleLine1}<br />{t.hero.titleYour} <span className="serif it em">{t.hero.titleAccent}</span><br />{t.hero.titleLine3}
             </h1>
-            <p className="hero-sub">AI-powered facial analysis. Get your score, find your weak points, and unlock your best self — backed by 40+ biometric markers.</p>
+            <p className="hero-sub">{t.hero.sub}</p>
             <div className="hero-cta">
               <Link href="/upload" className="btn btn-gold btn-lg">
-                Analyze My Face — Free
+                {t.hero.ctaAnalyze}
                 <svg className="arr" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </Link>
-              <a href="#how" className="btn btn-ghost btn-lg">See how it works</a>
+              <a href="#how" className="btn btn-ghost btn-lg">{t.hero.ctaHow}</a>
             </div>
             <div className="trust">
               <div className="avatars">
@@ -340,7 +352,7 @@ export default function Home() {
               </div>
               <div>
                 <div className="stars">★★★★★ <span style={{ color: "var(--fg-2)", marginLeft: 6 }}>4.9</span></div>
-                <div style={{ marginTop: 2 }}>Trusted by 240,000+ users</div>
+                <div style={{ marginTop: 2 }}>{t.hero.trustedBy}</div>
               </div>
             </div>
           </div>
@@ -350,7 +362,7 @@ export default function Home() {
             {/* Left column */}
             <div className="col">
               <div className="dcard">
-                <h4>Symmetry</h4>
+                <h4>{t.dashboard.symmetry}</h4>
                 <div className="body">
                   <div className="bars">
                     <div className="b t" style={{ height: "62%" }} />
@@ -359,12 +371,12 @@ export default function Home() {
                     <div className="b g" style={{ height: "70%" }} />
                   </div>
                 </div>
-                <div className="bars-labels"><span>Left</span><span>Right</span></div>
-                <div className="foot"><span>Overall</span><b>94%</b></div>
+                <div className="bars-labels"><span>{t.dashboard.left}</span><span>{t.dashboard.right}</span></div>
+                <div className="foot"><span>{t.dashboard.overall}</span><b>94%</b></div>
               </div>
 
               <div className="dcard">
-                <h4>Jawline</h4>
+                <h4>{t.dashboard.jawline}</h4>
                 <div className="body">
                   <div className="angle">
                     <svg viewBox="0 0 200 96" preserveAspectRatio="xMidYMid meet">
@@ -378,14 +390,14 @@ export default function Home() {
                     </svg>
                   </div>
                 </div>
-                <div className="foot"><span>Sharpness</span><b>A+</b></div>
+                <div className="foot"><span>{t.dashboard.sharpness}</span><b>A+</b></div>
               </div>
 
               <div className="dcard">
-                <h4>AI Summary</h4>
-                <div className="sum-row"><span>Mog Score</span><b>82<span style={{ fontSize: 11, color: "var(--fg-3)" }}>/100</span></b></div>
-                <div className="sum-row"><span>Percentile</span><b className="teal">94<span style={{ fontSize: 11, color: "var(--fg-3)" }}>th</span></b></div>
-                <div className="sum-row"><span>Improvement</span><b>+6 pts</b></div>
+                <h4>{t.dashboard.aiSummary}</h4>
+                <div className="sum-row"><span>{t.dashboard.mogScore}</span><b>82<span style={{ fontSize: 11, color: "var(--fg-3)" }}>/100</span></b></div>
+                <div className="sum-row"><span>{t.dashboard.percentile}</span><b className="teal">94<span style={{ fontSize: 11, color: "var(--fg-3)" }}>th</span></b></div>
+                <div className="sum-row"><span>{t.dashboard.improvement}</span><b>+6 pts</b></div>
               </div>
             </div>
 
@@ -396,22 +408,22 @@ export default function Home() {
               <div className="scan" />
               <div className="score">
                 <div>
-                  <div className="score-lbl">Mog Score</div>
+                  <div className="score-lbl">{t.dashboard.mogScore}</div>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
                     <span className="score-num" ref={scoreRef}>0</span>
                     <span style={{ color: "var(--fg-3)", fontFamily: "var(--font-dm-sans),sans-serif", fontSize: 18 }}>/100</span>
                   </div>
                 </div>
               </div>
-              <div className="pill p1"><span className="k">Symmetry</span><span className="v">94%</span></div>
-              <div className="pill p2"><span className="k">Jawline</span><span className="v">A+</span></div>
-              <div className="pill p3"><span className="k">Golden Ratio</span><span className="v">1.61</span></div>
+              <div className="pill p1"><span className="k">{t.dashboard.symmetry}</span><span className="v">94%</span></div>
+              <div className="pill p2"><span className="k">{t.dashboard.jawline}</span><span className="v">A+</span></div>
+              <div className="pill p3"><span className="k">{t.dashboard.goldenRatioLabel}</span><span className="v">1.61</span></div>
             </div>
 
             {/* Right column */}
             <div className="col">
               <div className="dcard">
-                <h4>Canthal Tilt</h4>
+                <h4>{t.dashboard.canthalTilt}</h4>
                 <div className="body">
                   <div className="eyes">
                     <div className="eye-card">
@@ -420,7 +432,7 @@ export default function Home() {
                         <ellipse cx="40" cy="18" rx="10" ry="6" fill="rgba(95,208,191,0.18)" stroke="var(--teal)" strokeWidth="0.8" />
                         <circle cx="40" cy="18" r="3" fill="var(--teal)" />
                       </svg>
-                      <span>Left · +4°</span>
+                      <span>{t.dashboard.left} · +4°</span>
                     </div>
                     <div className="eye-card">
                       <svg viewBox="0 0 80 32" fill="none">
@@ -428,15 +440,15 @@ export default function Home() {
                         <ellipse cx="40" cy="18" rx="10" ry="6" fill="rgba(249,115,22,0.18)" stroke="var(--gold)" strokeWidth="0.8" />
                         <circle cx="40" cy="18" r="3" fill="var(--gold)" />
                       </svg>
-                      <span>Right · +5°</span>
+                      <span>{t.dashboard.right} · +5°</span>
                     </div>
                   </div>
                 </div>
-                <div className="foot"><span>Positive tilt</span><b>+4.5°</b></div>
+                <div className="foot"><span>{t.dashboard.positiveTilt}</span><b>+4.5°</b></div>
               </div>
 
               <div className="dcard">
-                <h4>Midface Ratio</h4>
+                <h4>{t.dashboard.midfaceRatio}</h4>
                 <div className="body">
                   <div className="verticals">
                     <div className="v" style={{ height: "55%" }} />
@@ -448,15 +460,15 @@ export default function Home() {
                     <div className="v" style={{ height: "58%" }} />
                   </div>
                 </div>
-                <div className="foot"><span>Golden ratio</span><b>1.61</b></div>
+                <div className="foot"><span>{t.dashboard.goldenRatio}</span><b>1.61</b></div>
               </div>
 
               <div className="dcard">
-                <h4>Harmony Score</h4>
-                <p style={{ fontSize: 11.5, color: "var(--fg-2)", margin: "2px 0 0", lineHeight: 1.4 }}>Composite of symmetry, ratios &amp; proportion.</p>
+                <h4>{t.dashboard.harmonyScore}</h4>
+                <p style={{ fontSize: 11.5, color: "var(--fg-2)", margin: "2px 0 0", lineHeight: 1.4 }}>{t.dashboard.harmonySub}</p>
                 <div className="harmony-bar" />
                 <div className="hr-scale"><span>0.0</span><span>0.5</span><span>1.0</span></div>
-                <div className="foot"><span>Your score</span><b>0.82</b></div>
+                <div className="foot"><span>{t.dashboard.yourScore}</span><b>0.82</b></div>
               </div>
             </div>
           </div>
@@ -469,46 +481,46 @@ export default function Home() {
         <div className="wrap">
           <div className="section-head">
             <div>
-              <div className="section-num">01 — What you get</div>
-              <h2 className="section-title">Everything you need to understand <span className="serif it">your face</span>.</h2>
+              <div className="section-num">{t.features.sectionNum}</div>
+              <h2 className="section-title">{t.features.titlePart1} <span className="serif it">{t.features.titleAccent}</span>.</h2>
             </div>
-            <p className="section-lede">Three pillars of analysis. Built on a vision model trained against 12M anonymized facial datapoints.</p>
+            <p className="section-lede">{t.features.lede}</p>
           </div>
           <div className="features">
             <div className="feat">
               <div className="feat-ico">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2.1 2.1M16.9 16.9 19 19M5 19l2.1-2.1M16.9 7.1 19 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /><circle cx="12" cy="12" r="4.5" stroke="currentColor" strokeWidth="1.5" /></svg>
               </div>
-              <div className="feat-tag">01 / Analysis</div>
-              <h3 className="feat-title">Instant AI Analysis</h3>
-              <p className="feat-desc">Upload a single photo. Our model processes 40+ landmarks, ratios and symmetry vectors in under 8 seconds — no waiting, no humans in the loop.</p>
+              <div className="feat-tag">{t.features.feat1Tag}</div>
+              <h3 className="feat-title">{t.features.feat1Title}</h3>
+              <p className="feat-desc">{t.features.feat1Desc}</p>
               <div className="feat-foot">
                 <span style={{ color: "var(--gold)" }}>●</span>
-                <span>8.2s avg. processing</span>
+                <span>{t.features.feat1Foot}</span>
               </div>
             </div>
             <div className="feat">
               <div className="feat-ico">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="3" width="16" height="18" rx="2" stroke="currentColor" strokeWidth="1.5" /><path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
               </div>
-              <div className="feat-tag">02 / Report</div>
-              <h3 className="feat-title">Detailed Report</h3>
-              <p className="feat-desc">A complete breakdown across 12 categories — symmetry, jawline, skin, eyes, harmony, golden ratio. See exactly where you stand and what raises your score.</p>
+              <div className="feat-tag">{t.features.feat2Tag}</div>
+              <h3 className="feat-title">{t.features.feat2Title}</h3>
+              <p className="feat-desc">{t.features.feat2Desc}</p>
               <div className="feat-foot">
                 <span style={{ color: "var(--gold)" }}>●</span>
-                <span>12 categories scored</span>
+                <span>{t.features.feat2Foot}</span>
               </div>
             </div>
             <div className="feat">
               <div className="feat-ico">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7-4.5-7-11a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6.5-7 11-7 11h-4z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /><path d="M12 12v-2M10 11h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
               </div>
-              <div className="feat-tag">03 / Improve</div>
-              <h3 className="feat-title">Personalized Tips</h3>
-              <p className="feat-desc">A concrete action plan tailored to your features — hairstyles, skincare routines, posture, grooming. Track progress as you re-scan over time.</p>
+              <div className="feat-tag">{t.features.feat3Tag}</div>
+              <h3 className="feat-title">{t.features.feat3Title}</h3>
+              <p className="feat-desc">{t.features.feat3Desc}</p>
               <div className="feat-foot">
                 <span style={{ color: "var(--gold)" }}>●</span>
-                <span>Updated weekly</span>
+                <span>{t.features.feat3Foot}</span>
               </div>
             </div>
           </div>
@@ -520,14 +532,14 @@ export default function Home() {
         <div className="wrap">
           <div className="section-head">
             <div>
-              <div className="section-num">02 — How it works</div>
-              <h2 className="section-title">Three steps from <span className="serif it">selfie</span> to strategy.</h2>
+              <div className="section-num">{t.howItWorks.sectionNum}</div>
+              <h2 className="section-title">{t.howItWorks.titlePart1} <span className="serif it">{t.howItWorks.titleAccent}</span> {t.howItWorks.titlePart2}</h2>
             </div>
-            <p className="section-lede">No accounts. No filters. No filler. Drop a photo, get the truth, then build a plan you can actually follow.</p>
+            <p className="section-lede">{t.howItWorks.lede}</p>
           </div>
           <div className="steps">
             <div className="step">
-              <div className="step-num"><b>01</b><span>Upload your photo</span></div>
+              <div className="step-num"><b>01</b><span>{t.howItWorks.step1Num}</span></div>
               <div className="step-visual">
                 <div className="upl">
                   <div className="upl-box">
@@ -536,11 +548,11 @@ export default function Home() {
                   <div className="mono" style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase" }}>drag · jpg · png</div>
                 </div>
               </div>
-              <h3 className="step-title">Upload your photo</h3>
-              <p className="step-desc">A clean front-facing shot is all we need. Photos are encrypted, never shared, and auto-deleted after 24h unless you save your report.</p>
+              <h3 className="step-title">{t.howItWorks.step1Title}</h3>
+              <p className="step-desc">{t.howItWorks.step1Desc}</p>
             </div>
             <div className="step">
-              <div className="step-num"><b>02</b><span>Get your score</span></div>
+              <div className="step-num"><b>02</b><span>{t.howItWorks.step2Num}</span></div>
               <div className="step-visual">
                 <div className="gauge">
                   <svg viewBox="0 0 160 90">
@@ -550,11 +562,11 @@ export default function Home() {
                   <div className="gauge-num">82<small>/100</small></div>
                 </div>
               </div>
-              <h3 className="step-title">Get your score</h3>
-              <p className="step-desc">Receive an overall Mog Score plus 12 sub-category scores. Every number is anchored to a percentile so you know exactly where you stand.</p>
+              <h3 className="step-title">{t.howItWorks.step2Title}</h3>
+              <p className="step-desc">{t.howItWorks.step2Desc}</p>
             </div>
             <div className="step">
-              <div className="step-num"><b>03</b><span>Improve yourself</span></div>
+              <div className="step-num"><b>03</b><span>{t.howItWorks.step3Num}</span></div>
               <div className="step-visual">
                 <div className="trend">
                   <svg viewBox="0 0 220 110" preserveAspectRatio="none">
@@ -571,8 +583,8 @@ export default function Home() {
                   </svg>
                 </div>
               </div>
-              <h3 className="step-title">Improve yourself</h3>
-              <p className="step-desc">Follow your personalized roadmap. Re-scan monthly to watch your score climb. Most users gain +6 points within 90 days.</p>
+              <h3 className="step-title">{t.howItWorks.step3Title}</h3>
+              <p className="step-desc">{t.howItWorks.step3Desc}</p>
             </div>
           </div>
         </div>
@@ -583,60 +595,60 @@ export default function Home() {
         <div className="wrap pricing-wrap">
           <div className="section-head">
             <div>
-              <div className="section-num">03 — Pricing</div>
-              <h2 className="section-title">One free scan. Or go <span className="serif it">all in</span>.</h2>
+              <div className="section-num">{t.pricing.sectionNum}</div>
+              <h2 className="section-title">{t.pricing.titlePart1} <span className="serif it">{t.pricing.titleAccent}</span>.</h2>
             </div>
-            <p className="section-lede">Start free, no card required. Upgrade only when you want unlimited tracking and the full action plan.</p>
+            <p className="section-lede">{t.pricing.lede}</p>
           </div>
 
           <div className="price-toggle">
-            <button className={billing === "month" ? "active" : ""} onClick={() => setBilling("month")}>Monthly</button>
-            <button className={billing === "year" ? "active" : ""} onClick={() => setBilling("year")}>Yearly <span className="save">–30%</span></button>
+            <button className={billing === "month" ? "active" : ""} onClick={() => setBilling("month")}>{t.pricing.monthly}</button>
+            <button className={billing === "year" ? "active" : ""} onClick={() => setBilling("year")}>{t.pricing.yearly} <span className="save">–30%</span></button>
           </div>
 
           <div className="plans">
             <div className="plan">
-              <div className="plan-tag"><span>Free</span><span>Get started</span></div>
-              <h3 className="plan-name">Starter</h3>
-              <p className="plan-desc">Perfect for a one-time check-in. See your overall score and top three findings.</p>
+              <div className="plan-tag"><span>{t.pricing.free}</span><span>{t.pricing.getStarted}</span></div>
+              <h3 className="plan-name">{t.pricing.starterName}</h3>
+              <p className="plan-desc">{t.pricing.starterDesc}</p>
               <div className="plan-price">
                 <span className="cur">$</span>
                 <span className="amt">0</span>
-                <span className="per">forever</span>
+                <span className="per">{t.pricing.forever}</span>
               </div>
               <ul className="plan-feats">
-                <li><span className="ck">✓</span> 1 face analysis</li>
-                <li><span className="ck">✓</span> Overall Mog Score</li>
-                <li><span className="ck">✓</span> Top 3 strengths &amp; weaknesses</li>
-                <li className="muted"><span className="ck">✓</span> Full 12-category report</li>
-                <li className="muted"><span className="ck">✓</span> Personalized action plan</li>
-                <li className="muted"><span className="ck">✓</span> Progress tracking</li>
+                <li><span className="ck">✓</span> {t.pricing.starterFeat1}</li>
+                <li><span className="ck">✓</span> {t.pricing.starterFeat2}</li>
+                <li><span className="ck">✓</span> {t.pricing.starterFeat3}</li>
+                <li className="muted"><span className="ck">✓</span> {t.pricing.starterFeat4}</li>
+                <li className="muted"><span className="ck">✓</span> {t.pricing.starterFeat5}</li>
+                <li className="muted"><span className="ck">✓</span> {t.pricing.starterFeat6}</li>
               </ul>
               <Link href="/upload" className="btn btn-ghost btn-lg plan-cta">
-                Start free
+                {t.pricing.startFree}
                 <svg className="arr" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </Link>
             </div>
 
             <div className="plan pro">
-              <div className="plan-tag"><span>Pro</span><span className="badge">Most picked</span></div>
-              <h3 className="plan-name">Unlimited</h3>
-              <p className="plan-desc">Track your transformation. Unlimited scans, the full report, and weekly-updated improvement plans.</p>
+              <div className="plan-tag"><span>{t.pricing.proTag}</span><span className="badge">{t.pricing.mostPicked}</span></div>
+              <h3 className="plan-name">{t.pricing.unlimitedName}</h3>
+              <p className="plan-desc">{t.pricing.unlimitedDesc}</p>
               <div className="plan-price">
                 <span className="cur">$</span>
                 <span className="amt">{billing === "year" ? "6.99" : "9.99"}</span>
-                <span className="per">{billing === "year" ? "/ month, billed yearly" : "/ month"}</span>
+                <span className="per">{billing === "year" ? t.pricing.billedYearly : t.pricing.perMonth}</span>
               </div>
               <ul className="plan-feats">
-                <li><span className="ck">✓</span> <b>Unlimited</b> face analyses</li>
-                <li><span className="ck">✓</span> Full 12-category report</li>
-                <li><span className="ck">✓</span> Personalized action plan</li>
-                <li><span className="ck">✓</span> Monthly progress tracking</li>
-                <li><span className="ck">✓</span> Before/after side-by-side</li>
-                <li><span className="ck">✓</span> Priority AI model access</li>
+                <li><span className="ck">✓</span> <b>{t.pricing.unlimitedName}</b> {t.pricing.proFeat1}</li>
+                <li><span className="ck">✓</span> {t.pricing.proFeat2}</li>
+                <li><span className="ck">✓</span> {t.pricing.proFeat3}</li>
+                <li><span className="ck">✓</span> {t.pricing.proFeat4}</li>
+                <li><span className="ck">✓</span> {t.pricing.proFeat5}</li>
+                <li><span className="ck">✓</span> {t.pricing.proFeat6}</li>
               </ul>
               <Link href="/upload" className="btn btn-gold btn-lg plan-cta">
-                Go Pro
+                {t.pricing.goPro}
                 <svg className="arr" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </Link>
             </div>
@@ -653,38 +665,38 @@ export default function Home() {
                 <span className="brand-mark">M</span>
                 <span>MogRank</span>
               </a>
-              <p className="foot-blurb">The mirror that actually tells you the truth — and tells you what to do about it.</p>
+              <p className="foot-blurb">{t.footer.blurb}</p>
             </div>
             <div className="foot-col">
-              <h4>Product</h4>
+              <h4>{t.footer.product}</h4>
               <ul>
-                <li><a href="#">Features</a></li>
-                <li><a href="#">Pricing</a></li>
-                <li><a href="#">Mobile app</a></li>
-                <li><a href="#">Changelog</a></li>
+                <li><a href="#">{t.footer.featuresLink}</a></li>
+                <li><a href="#">{t.footer.pricingLink}</a></li>
+                <li><a href="#">{t.footer.mobileApp}</a></li>
+                <li><a href="#">{t.footer.changelog}</a></li>
               </ul>
             </div>
             <div className="foot-col">
-              <h4>Resources</h4>
+              <h4>{t.footer.resources}</h4>
               <ul>
-                <li><a href="#">The Science</a></li>
-                <li><a href="#">Methodology</a></li>
-                <li><a href="#">Blog</a></li>
-                <li><a href="#">Support</a></li>
+                <li><a href="#">{t.footer.theScience}</a></li>
+                <li><a href="#">{t.footer.methodology}</a></li>
+                <li><a href="#">{t.footer.blog}</a></li>
+                <li><a href="#">{t.footer.support}</a></li>
               </ul>
             </div>
             <div className="foot-col">
-              <h4>Company</h4>
+              <h4>{t.footer.company}</h4>
               <ul>
-                <li><a href="#">About</a></li>
-                <li><a href="#">Privacy</a></li>
-                <li><a href="#">Terms</a></li>
-                <li><a href="#">Contact</a></li>
+                <li><a href="#">{t.footer.about}</a></li>
+                <li><a href="#">{t.footer.privacy}</a></li>
+                <li><a href="#">{t.footer.terms}</a></li>
+                <li><a href="#">{t.footer.contact}</a></li>
               </ul>
             </div>
           </div>
           <div className="foot-bot">
-            <div>© 2026 MogRank Labs. All photos processed on-device where possible.</div>
+            <div>{t.footer.copyright}</div>
             <div className="mono" style={{ letterSpacing: "0.1em" }}>v3.2 · MOG-ENGINE</div>
           </div>
         </div>
