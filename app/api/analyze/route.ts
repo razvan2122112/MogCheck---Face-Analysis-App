@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const SYSTEM_PROMPT = `You are a brutally honest looksmaxxing expert and aesthetic analyst. Analyze facial photographs using established aesthetic principles (golden ratio, facial thirds, symmetry) combined with modern looksmaxxing community standards and biometric assessment.
+const SYSTEM_PROMPT_BASE = `You are a brutally honest looksmaxxing expert and aesthetic analyst. Analyze facial photographs using established aesthetic principles (golden ratio, facial thirds, symmetry) combined with modern looksmaxxing community standards and biometric assessment.
 
 You MUST respond with ONLY a valid JSON object — no markdown, no explanation, no extra text.
 
@@ -66,6 +66,10 @@ improvement_plan — be highly specific:
 
 Be precise and honest. Use decimal values (e.g., 7.3, 8.1). A weak jaw is 3-4, not 6. Use looksmaxxing terminology throughout.`;
 
+const FRENCH_SUFFIX = `
+
+LANGUAGE REQUIREMENT: All string values in the JSON response MUST be written in French. This includes: every "flaw" name, every "fix" description, every string in "improvements", every string in "improvement_plan" (skincare, exercises, lifestyle, grooming), and the "summary". Keep the "severity" field values as-is ("mild", "moderate", "severe") and the "looksmax_rating" value in English (these are internationally recognised community terms). Every other human-readable text must be in French.`;
+
 interface LandmarkMetrics {
   symmetry: number;
   canthal: number;
@@ -74,11 +78,14 @@ interface LandmarkMetrics {
 
 export async function POST(req: NextRequest) {
   try {
-    const { image, mimeType, landmarkMetrics } = await req.json() as {
+    const { image, mimeType, landmarkMetrics, lang } = await req.json() as {
       image: string;
       mimeType: string;
       landmarkMetrics?: LandmarkMetrics;
+      lang?: string;
     };
+
+    const systemPrompt = SYSTEM_PROMPT_BASE + (lang === "fr" ? FRENCH_SUFFIX : "");
 
     if (!image || !mimeType) {
       return NextResponse.json({ error: "Missing image or mimeType" }, { status: 400 });
@@ -106,7 +113,7 @@ export async function POST(req: NextRequest) {
     const response = await client.messages.create({
       model: "claude-sonnet-4-5",
       max_tokens: 2048,
-      system: SYSTEM_PROMPT,
+      system: systemPrompt,
       messages: [
         {
           role: "user",

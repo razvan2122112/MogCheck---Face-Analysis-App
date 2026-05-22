@@ -161,7 +161,7 @@ const STATUS_CFG = {
 
 export default function UploadPage() {
   const router = useRouter();
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const inputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -386,6 +386,7 @@ export default function UploadPage() {
         body: JSON.stringify({
           image: base64,
           mimeType: "image/jpeg",
+          lang,
           ...(lmMetrics && { landmarkMetrics: lmMetrics }),
         }),
       });
@@ -427,7 +428,7 @@ export default function UploadPage() {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: base64, mimeType: file.type }),
+        body: JSON.stringify({ image: base64, mimeType: file.type, lang }),
       });
 
       if (!res.ok) {
