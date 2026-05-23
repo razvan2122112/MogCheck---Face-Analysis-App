@@ -68,7 +68,9 @@ improvement_plan — be highly specific:
 
 Be precise and honest. Use decimal values (e.g., 7.3, 8.1). A weak jaw is 3-4, not 6. Use looksmaxxing terminology throughout.
 
-For perfect_version: make it compelling and specific. Reference the actual face features you see. Example format: "With consistent mewing and a targeted jawline program, your jaw definition could improve by 25–30%, your skin texture reach 8.5/10 with the right retinoid routine, and your canthal tilt lift by 1–2°, pushing your overall score from [current] to [potential] within 90 days."`;
+For perfect_version: make it compelling and specific. Reference the actual face features you see. Example format: "With consistent mewing and a targeted jawline program, your jaw definition could improve by 25–30%, your skin texture reach 8.5/10 with the right retinoid routine, and your canthal tilt lift by 1–2°, pushing your overall score from [current] to [potential] within 90 days."
+
+CRITICAL: Return ONLY valid JSON. No text before or after. No markdown. No backticks. Just the raw JSON object.`;
 
 const FRENCH_SUFFIX = `
 
@@ -154,7 +156,7 @@ export async function POST(req: NextRequest) {
 
     const response = await client.messages.create({
       model: "claude-sonnet-4-5",
-      max_tokens: 2048,
+      max_tokens: 4096,
       system: systemPrompt,
       messages: [
         {
@@ -166,13 +168,22 @@ export async function POST(req: NextRequest) {
 
     const raw = response.content[0].type === "text" ? response.content[0].text : "";
 
-    // Extract JSON from the response (handles any accidental markdown wrapping)
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+    // Find the outermost { } block robustly (handles markdown wrapping or leading text)
+    const firstBrace = raw.indexOf("{");
+    const lastBrace  = raw.lastIndexOf("}");
+    if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+      console.error("/api/analyze: no JSON object found in response", raw.slice(0, 200));
       return NextResponse.json({ error: "Failed to parse AI response." }, { status: 500 });
     }
+    const jsonStr = raw.slice(firstBrace, lastBrace + 1);
 
-    const result = JSON.parse(jsonMatch[0]);
+    let result: Record<string, unknown>;
+    try {
+      result = JSON.parse(jsonStr);
+    } catch (parseErr) {
+      console.error("/api/analyze: JSON.parse failed", parseErr, "raw slice:", jsonStr.slice(0, 300));
+      return NextResponse.json({ error: "AI returned malformed JSON. Please try again." }, { status: 500 });
+    }
 
     // Validate required fields are present and numeric
     const required = ["symmetry_score", "jawline_score", "canthal_tilt", "midface_ratio", "overall_score"];
