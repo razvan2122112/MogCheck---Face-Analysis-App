@@ -377,6 +377,14 @@ export default function UploadPage() {
     const base64 = captureCanvas.toDataURL("image/jpeg", 0.92);
     const lmMetrics = metricsRef.current;
 
+    // Store downscaled photo for results before/after slider
+    const photoRatio = Math.min(1, 640 / captureCanvas.width);
+    const photoCanvas = document.createElement("canvas");
+    photoCanvas.width = Math.round(captureCanvas.width * photoRatio);
+    photoCanvas.height = Math.round(captureCanvas.height * photoRatio);
+    photoCanvas.getContext("2d")?.drawImage(captureCanvas, 0, 0, photoCanvas.width, photoCanvas.height);
+    sessionStorage.setItem("mogrank_photo", photoCanvas.toDataURL("image/jpeg", 0.82));
+
     stopCamera();
 
     try {
@@ -423,6 +431,22 @@ export default function UploadPage() {
         reader.onload = () => resolve(reader.result as string);
         reader.onerror = reject;
         reader.readAsDataURL(file);
+      });
+
+      // Store downscaled photo for results before/after slider
+      await new Promise<void>((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const ratio = Math.min(1, 640 / img.width);
+          const sc = document.createElement("canvas");
+          sc.width = Math.round(img.width * ratio);
+          sc.height = Math.round(img.height * ratio);
+          sc.getContext("2d")?.drawImage(img, 0, 0, sc.width, sc.height);
+          sessionStorage.setItem("mogrank_photo", sc.toDataURL("image/jpeg", 0.82));
+          resolve();
+        };
+        img.onerror = () => resolve();
+        img.src = base64;
       });
 
       const res = await fetch("/api/analyze", {

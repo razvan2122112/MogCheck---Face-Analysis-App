@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLang, LangToggle } from "../context/language";
@@ -146,9 +146,110 @@ function PlanSection({
   );
 }
 
-// ── Before / After visual ─────────────────────────────────────────────────────
+// ── Before / After interactive slider ────────────────────────────────────────
 
-function BeforeAfterVisual({
+function BeforeAfterSlider({
+  photoUrl,
+  labelNow,
+  labelAfter,
+}: {
+  photoUrl: string;
+  labelNow: string;
+  labelAfter: string;
+}) {
+  const [pct, setPct] = useState(50);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
+
+  const updatePct = (clientX: number) => {
+    if (!containerRef.current) return;
+    const { left, width } = containerRef.current.getBoundingClientRect();
+    setPct(Math.min(Math.max(((clientX - left) / width) * 100, 3), 97));
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative w-full rounded-2xl overflow-hidden cursor-col-resize select-none"
+      style={{ aspectRatio: "4/5", touchAction: "none" }}
+      onPointerDown={(e) => {
+        dragging.current = true;
+        containerRef.current?.setPointerCapture(e.pointerId);
+        updatePct(e.clientX);
+      }}
+      onPointerMove={(e) => { if (dragging.current) updatePct(e.clientX); }}
+      onPointerUp={() => { dragging.current = false; }}
+      onPointerCancel={() => { dragging.current = false; }}
+    >
+      {/* BEFORE — original photo, full width underneath */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={photoUrl}
+        alt="Before"
+        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+        draggable={false}
+      />
+
+      {/* AFTER — same photo with CSS filters, clipped to right of divider */}
+      <div
+        className="absolute inset-0"
+        style={{ clipPath: `inset(0 0 0 ${pct}%)` }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={photoUrl}
+          alt="After"
+          className="absolute inset-0 h-full object-cover pointer-events-none"
+          draggable={false}
+          style={{
+            /* Slightly wider + compressed horizontally to slim the face */
+            width: "112%",
+            left: "-6%",
+            transform: "scaleX(0.94)",
+            transformOrigin: "center center",
+            /* Better skin, sharper definition, warmer tone */
+            filter: "brightness(1.09) contrast(1.14) saturate(1.08) hue-rotate(-3deg)",
+          }}
+        />
+        {/* Subtle warm skin-tone overlay */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: "linear-gradient(to bottom, rgba(255,220,160,0.04), rgba(240,195,130,0.07))" }}
+        />
+      </div>
+
+      {/* Divider line + handle */}
+      <div
+        className="absolute top-0 bottom-0 pointer-events-none"
+        style={{ left: `${pct}%`, transform: "translateX(-50%)" }}
+      >
+        <div className="absolute inset-0 w-[2px] bg-white/90 left-1/2 -translate-x-1/2" />
+        {/* Circular handle */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white shadow-2xl flex items-center justify-center border border-white/20">
+          <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l-4 3 4 3M16 9l4 3-4 3" />
+          </svg>
+        </div>
+      </div>
+
+      {/* Labels */}
+      <div className="absolute bottom-3 left-3 pointer-events-none">
+        <span className="px-2 py-1 rounded-lg bg-black/65 backdrop-blur-sm text-white text-[9px] font-bold tracking-[0.15em]">
+          {labelNow}
+        </span>
+      </div>
+      <div className="absolute bottom-3 right-3 pointer-events-none">
+        <span className="px-2 py-1 rounded-lg text-[9px] font-bold tracking-[0.12em]"
+          style={{ background: "rgba(233,152,70,0.85)", color: "#0a0a0a" }}>
+          {labelAfter}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// Fallback score-based visual when no photo is available
+function ScoreDeltaVisual({
   current,
   potential,
   pw,
@@ -161,60 +262,42 @@ function BeforeAfterVisual({
     current >= 8 ? "#4ade80" : current >= 6 ? "#e99846" : current >= 4 ? "#fb923c" : "#f87171";
 
   return (
-    <div className="flex items-center justify-center gap-4 sm:gap-8 py-4">
-      {/* Current */}
+    <div className="flex items-center justify-center gap-6 py-4">
       <div className="flex flex-col items-center gap-1.5">
-        <div className="text-[10px] font-mono font-bold tracking-widest text-white/30 uppercase">
-          {pw.now}
-        </div>
-        <div
-          className="w-[72px] h-[72px] rounded-full border-[3px] flex items-center justify-center"
-          style={{ borderColor: currentColor, background: `${currentColor}12` }}
-        >
-          <span className="text-xl font-black" style={{ color: currentColor }}>
-            {current.toFixed(1)}
-          </span>
+        <div className="text-[10px] font-mono font-bold tracking-widest text-white/30 uppercase">{pw.now}</div>
+        <div className="w-[68px] h-[68px] rounded-full border-[3px] flex items-center justify-center"
+          style={{ borderColor: currentColor, background: `${currentColor}12` }}>
+          <span className="text-xl font-black" style={{ color: currentColor }}>{current.toFixed(1)}</span>
         </div>
       </div>
-
-      {/* Arrow + delta */}
-      <div className="flex flex-col items-center gap-1 flex-1 max-w-[72px]">
+      <div className="flex flex-col items-center gap-1 flex-1 max-w-[64px]">
         <div className="w-full h-px bg-gradient-to-r from-white/10 via-[#e99846]/50 to-[#e99846]" />
-        <svg
-          className="w-4 h-4 text-[#e99846] -mt-1"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2.5}
-        >
+        <svg className="w-4 h-4 text-[#e99846] -mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
         </svg>
-        <div className="text-[9px] font-mono text-[#e99846]/60 tracking-wide font-bold">
-          +{(potential - current).toFixed(1)}
-        </div>
+        <div className="text-[9px] font-mono text-[#e99846]/60 tracking-wide font-bold">+{(potential - current).toFixed(1)}</div>
       </div>
-
-      {/* Potential */}
       <div className="flex flex-col items-center gap-1.5">
-        <div className="text-[10px] font-mono font-bold tracking-widest text-[#e99846]/60 uppercase">
-          {pw.potential}
-        </div>
-        <div
-          className="w-[72px] h-[72px] rounded-full border-[3px] flex items-center justify-center"
-          style={{
-            borderColor: "#e99846",
-            background: "rgba(233,152,70,0.08)",
-            boxShadow:
-              "0 0 20px rgba(233,152,70,0.3), 0 0 40px rgba(233,152,70,0.12)",
-          }}
-        >
-          <span className="text-xl font-black text-[#e99846]">
-            {potential.toFixed(1)}
-          </span>
+        <div className="text-[10px] font-mono font-bold tracking-widest text-[#e99846]/60 uppercase">{pw.potential}</div>
+        <div className="w-[68px] h-[68px] rounded-full border-[3px] flex items-center justify-center"
+          style={{ borderColor: "#e99846", background: "rgba(233,152,70,0.08)", boxShadow: "0 0 20px rgba(233,152,70,0.3)" }}>
+          <span className="text-xl font-black text-[#e99846]">{potential.toFixed(1)}</span>
         </div>
       </div>
     </div>
   );
+}
+
+function tierFromScore(score: number): string {
+  if (score >= 9.0) return "GigaChad";
+  if (score >= 8.5) return "Chad";
+  if (score >= 7.5) return "Very High Tier";
+  if (score >= 6.5) return "High Tier";
+  if (score >= 5.5) return "Above Average";
+  if (score >= 4.5) return "Average";
+  if (score >= 3.5) return "Below Average";
+  if (score >= 2.5) return "Incel Tier";
+  return "Subhuman";
 }
 
 // ── Paywall Modal ─────────────────────────────────────────────────────────────
@@ -440,6 +523,7 @@ export default function ResultsPage() {
   const router = useRouter();
   const { t } = useLang();
   const [results, setResults] = useState<AnalysisResult | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [isPro, setIsPro] = useState(false);
@@ -456,6 +540,8 @@ export default function ResultsPage() {
     try {
       setResults(JSON.parse(raw));
       setLoaded(true);
+      const photo = sessionStorage.getItem("mogrank_photo");
+      if (photo) setPhotoUrl(photo);
     } catch {
       router.replace("/upload");
       return;
@@ -798,30 +884,66 @@ export default function ResultsPage() {
           </p>
         )}
 
-        {/* Perfect version / before-after card */}
+        {/* Potential section — slider or score visual */}
         <div
-          className="rounded-2xl border border-[#e99846]/20 bg-gradient-to-b from-[#e99846]/8 to-[#e99846]/3 p-6 mb-5 fade-up"
+          className="rounded-2xl border border-[#e99846]/20 bg-gradient-to-b from-[#e99846]/8 to-[#e99846]/3 overflow-hidden mb-5 fade-up"
           style={{ animationDelay: "350ms", animationFillMode: "both" }}
         >
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#e99846] mb-1">
-            {pw.yourPotential}
-          </p>
-
-          <BeforeAfterVisual
-            current={results.overall_score}
-            potential={potentialScore}
-            pw={pw}
-          />
-
-          {results.perfect_version && (
-            <p className="text-sm text-white/60 leading-relaxed text-center mt-2 mb-3">
-              {results.perfect_version}
-            </p>
+          {photoUrl ? (
+            <BeforeAfterSlider
+              photoUrl={photoUrl}
+              labelNow={pw.labelNow}
+              labelAfter={pw.labelAfter}
+            />
+          ) : (
+            <div className="px-6 pt-5">
+              <ScoreDeltaVisual
+                current={results.overall_score}
+                potential={potentialScore}
+                pw={pw}
+              />
+            </div>
           )}
 
-          <div className="flex items-center justify-center gap-2 pt-3 border-t border-[#e99846]/15">
-            <span className="text-[#e99846] text-sm">⏱</span>
-            <p className="text-xs text-[#e99846]/70 font-semibold">{pw.timeline}</p>
+          <div className="px-5 pb-5 pt-4">
+            {/* Dream face header + date */}
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#e99846]">
+                {pw.dreamFace}
+              </p>
+              <p className="text-[10px] font-mono text-white/30">
+                {new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toLocaleDateString(
+                  typeof navigator !== "undefined" && navigator.language
+                    ? navigator.language
+                    : "en-US",
+                  { day: "numeric", month: "short", year: "numeric" }
+                )}
+              </p>
+            </div>
+
+            {/* Tier progression */}
+            {results.looksmax_rating && (
+              <div className="flex items-center gap-2 text-sm mb-3">
+                <span className="text-white/45 font-semibold">{results.looksmax_rating}</span>
+                <svg className="w-3.5 h-3.5 text-[#e99846]/50 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                </svg>
+                <span className="text-[#e99846] font-bold">{tierFromScore(potentialScore)}</span>
+              </div>
+            )}
+
+            {/* AI description */}
+            {results.perfect_version && (
+              <p className="text-xs text-white/55 leading-relaxed mb-3">
+                {results.perfect_version}
+              </p>
+            )}
+
+            {/* Timeline */}
+            <div className="flex items-center gap-2 pt-3 border-t border-[#e99846]/15">
+              <span className="text-[#e99846] text-sm">⏱</span>
+              <p className="text-xs text-[#e99846]/70 font-semibold">{pw.timeline}</p>
+            </div>
           </div>
         </div>
 
