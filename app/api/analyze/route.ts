@@ -82,8 +82,9 @@ interface LandmarkMetrics {
 
 export async function POST(req: NextRequest) {
   try {
-    const { image, mimeType, landmarkMetrics, lang } = await req.json() as {
-      image: string;
+    const { image, images, mimeType, landmarkMetrics, lang } = await req.json() as {
+      image?: string;
+      images?: string[];
       mimeType: string;
       landmarkMetrics?: LandmarkMetrics;
       lang?: string;
@@ -91,27 +92,64 @@ export async function POST(req: NextRequest) {
 
     const systemPrompt = SYSTEM_PROMPT_BASE + (lang === "fr" ? FRENCH_SUFFIX : "");
 
-    if (!image || !mimeType) {
-      return NextResponse.json({ error: "Missing image or mimeType" }, { status: 400 });
-    }
-
-    // Strip the data URL prefix to get raw base64
-    const base64Data = image.replace(/^data:[^;]+;base64,/, "");
-
     const validMimeTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
     if (!validMimeTypes.includes(mimeType)) {
       return NextResponse.json({ error: "Unsupported image type. Use JPG, PNG, or WEBP." }, { status: 400 });
     }
 
-    let userText = "Analyze this face with full looksmaxxing assessment and return the JSON.";
-    if (landmarkMetrics) {
-      userText =
-        `Analyze this face with full looksmaxxing assessment.\n` +
-        `Computer vision pre-analysis (MediaPipe 468-point FaceMesh) measured:\n` +
-        `- Facial symmetry: ${landmarkMetrics.symmetry}%\n` +
-        `- Average canthal tilt: ${landmarkMetrics.canthal > 0 ? "+" : ""}${landmarkMetrics.canthal}°\n` +
-        `- Jaw/face width ratio grade: ${landmarkMetrics.jawGrade}\n` +
-        `Use these precise landmark measurements to calibrate your symmetry_score and canthal_tilt scores. Return the JSON.`;
+    const mediaType = mimeType as "image/jpeg" | "image/png" | "image/gif" | "image/webp";
+
+    // Build the content array — multi-angle (3 images) or single image
+    type ContentBlock =
+      | { type: "image"; source: { type: "base64"; media_type: typeof mediaType; data: string } }
+      | { type: "text"; text: string };
+
+    let content: ContentBlock[];
+
+    if (images && images.length > 0) {
+      if (images.length !== 3) {
+        return NextResponse.json({ error: "Expected exactly 3 images for multi-angle analysis." }, { status: 400 });
+      }
+      const [front, left, right] = images.map((img) => img.replace(/^data:[^;]+;base64,/, ""));
+      content = [
+        {
+          type: "image",
+          source: { type: "base64", media_type: mediaType, data: front },
+        },
+        {
+          type: "image",
+          source: { type: "base64", media_type: mediaType, data: left },
+        },
+        {
+          type: "image",
+          source: { type: "base64", media_type: mediaType, data: right },
+        },
+        {
+          type: "text",
+          text:
+            "These are 3 angles of the same person: image 1 is front-facing, image 2 is left 45° profile, image 3 is right 45° profile.\n" +
+            "Use all 3 angles to give the most accurate multi-angle assessment — measure symmetry from the front view, jawline angle from the profiles, and canthal tilt from the front. " +
+            "Return the full looksmaxxing JSON analysis.",
+        },
+      ];
+    } else if (image) {
+      const base64Data = image.replace(/^data:[^;]+;base64,/, "");
+      let userText = "Analyze this face with full looksmaxxing assessment and return the JSON.";
+      if (landmarkMetrics) {
+        userText =
+          `Analyze this face with full looksmaxxing assessment.\n` +
+          `Computer vision pre-analysis (MediaPipe 468-point FaceMesh) measured:\n` +
+          `- Facial symmetry: ${landmarkMetrics.symmetry}%\n` +
+          `- Average canthal tilt: ${landmarkMetrics.canthal > 0 ? "+" : ""}${landmarkMetrics.canthal}°\n` +
+          `- Jaw/face width ratio grade: ${landmarkMetrics.jawGrade}\n` +
+          `Use these precise landmark measurements to calibrate your symmetry_score and canthal_tilt scores. Return the JSON.`;
+      }
+      content = [
+        { type: "image", source: { type: "base64", media_type: mediaType, data: base64Data } },
+        { type: "text", text: userText },
+      ];
+    } else {
+      return NextResponse.json({ error: "Missing image or images" }, { status: 400 });
     }
 
     const response = await client.messages.create({
@@ -121,20 +159,7 @@ export async function POST(req: NextRequest) {
       messages: [
         {
           role: "user",
-          content: [
-            {
-              type: "image",
-              source: {
-                type: "base64",
-                media_type: mimeType as "image/jpeg" | "image/png" | "image/gif" | "image/webp",
-                data: base64Data,
-              },
-            },
-            {
-              type: "text",
-              text: userText,
-            },
-          ],
+          content,
         },
       ],
     });

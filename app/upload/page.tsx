@@ -5,12 +5,48 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLang, LangToggle } from "../context/language";
 
+type AngleId = "front" | "left" | "right";
 type DetectionStatus = "detecting" | "mapping" | "locked";
 
 interface LiveMetrics {
   symmetry: number;
   canthal: number;
   jawGrade: string;
+}
+
+function FaceGuide({ angleId }: { angleId: AngleId }) {
+  if (angleId === "front") {
+    return (
+      <svg viewBox="0 0 120 150" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+        <ellipse cx="60" cy="75" rx="42" ry="55" stroke="currentColor" strokeWidth="1.5" strokeDasharray="4 3" opacity="0.5" />
+        <ellipse cx="43" cy="58" rx="9" ry="5" stroke="currentColor" strokeWidth="1" opacity="0.4" />
+        <ellipse cx="77" cy="58" rx="9" ry="5" stroke="currentColor" strokeWidth="1" opacity="0.4" />
+        <path d="M60 65 L56 80 Q60 83 64 80 L60 65Z" stroke="currentColor" strokeWidth="1" opacity="0.3" fill="none" />
+        <path d="M48 96 Q60 103 72 96" stroke="currentColor" strokeWidth="1" opacity="0.3" fill="none" />
+        <circle cx="60" cy="128" r="1.5" fill="currentColor" opacity="0.3" />
+      </svg>
+    );
+  }
+  if (angleId === "left") {
+    return (
+      <svg viewBox="0 0 120 150" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+        <ellipse cx="55" cy="75" rx="35" ry="55" stroke="currentColor" strokeWidth="1.5" strokeDasharray="4 3" opacity="0.5" transform="rotate(-10, 55, 75)" />
+        <ellipse cx="46" cy="60" rx="8" ry="4.5" stroke="currentColor" strokeWidth="1" opacity="0.4" />
+        <path d="M64 65 L70 80 Q66 83 61 80" stroke="currentColor" strokeWidth="1" opacity="0.3" fill="none" />
+        <circle cx="52" cy="128" r="1.5" fill="currentColor" opacity="0.3" />
+        <path d="M95 75 L80 75 M80 75 L86 69 M80 75 L86 81" stroke="currentColor" strokeWidth="1.5" opacity="0.35" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 120 150" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full" style={{ transform: "scaleX(-1)" }}>
+      <ellipse cx="55" cy="75" rx="35" ry="55" stroke="currentColor" strokeWidth="1.5" strokeDasharray="4 3" opacity="0.5" transform="rotate(-10, 55, 75)" />
+      <ellipse cx="46" cy="60" rx="8" ry="4.5" stroke="currentColor" strokeWidth="1" opacity="0.4" />
+      <path d="M64 65 L70 80 Q66 83 61 80" stroke="currentColor" strokeWidth="1" opacity="0.3" fill="none" />
+      <circle cx="52" cy="128" r="1.5" fill="currentColor" opacity="0.3" />
+      <path d="M95 75 L80 75 M80 75 L86 69 M80 75 L86 81" stroke="currentColor" strokeWidth="1.5" opacity="0.35" strokeLinecap="round" />
+    </svg>
+  );
 }
 
 function getLandmarkColor(x: number): string {
@@ -25,12 +61,7 @@ function computeMetrics(
   ch: number
 ): LiveMetrics {
   const noseTipX = lms[1].x;
-  const pairs: [number, number][] = [
-    [33, 263],
-    [133, 362],
-    [61, 291],
-    [234, 454],
-  ];
+  const pairs: [number, number][] = [[33, 263], [133, 362], [61, 291], [234, 454]];
   const diffs = pairs.map(([l, r]) =>
     Math.abs(Math.abs(lms[l].x - noseTipX) - Math.abs(lms[r].x - noseTipX))
   );
@@ -38,15 +69,9 @@ function computeMetrics(
   const symmetry = Math.max(0, Math.min(100, Math.round((1 - avgDiff * 8) * 100)));
 
   const rightTilt =
-    (Math.atan2(
-      (lms[133].y - lms[33].y) * ch,
-      (lms[133].x - lms[33].x) * cw
-    ) * 180) / Math.PI;
+    (Math.atan2((lms[133].y - lms[33].y) * ch, (lms[133].x - lms[33].x) * cw) * 180) / Math.PI;
   const leftTilt =
-    (Math.atan2(
-      (lms[362].y - lms[263].y) * ch,
-      (lms[263].x - lms[362].x) * cw
-    ) * 180) / Math.PI;
+    (Math.atan2((lms[362].y - lms[263].y) * ch, (lms[263].x - lms[362].x) * cw) * 180) / Math.PI;
   const canthal = parseFloat(((rightTilt + leftTilt) / 2).toFixed(1));
 
   const faceWidth = Math.abs(lms[454].x - lms[234].x) * cw;
@@ -69,7 +94,6 @@ function drawOverlay(
 ) {
   ctx.clearRect(0, 0, cw, ch);
 
-  // Draw landmark dots up to revealCount
   const count = Math.min(revealCount, lms.length);
   for (let i = 0; i < count; i++) {
     const lm = lms[i];
@@ -86,7 +110,6 @@ function drawOverlay(
   }
   ctx.shadowBlur = 0;
 
-  // Compute bounding box from all landmarks
   let minX = 1, maxX = 0, minY = 1, maxY = 0;
   for (const lm of lms) {
     if (lm.x < minX) minX = lm.x;
@@ -102,29 +125,19 @@ function drawOverlay(
   const cl = Math.min(bw, bh) * 0.14;
 
   const bColor =
-    status === "locked"
-      ? "#5fd0bf"
-      : status === "mapping"
-      ? "#f97316"
-      : "rgba(255,255,255,0.4)";
+    status === "locked" ? "#5fd0bf" : status === "mapping" ? "#f97316" : "rgba(255,255,255,0.4)";
   ctx.strokeStyle = bColor;
   ctx.lineWidth = 2.2;
   ctx.lineCap = "round";
   ctx.shadowColor = bColor;
   ctx.shadowBlur = 10;
 
-  // Top-left corner
   ctx.beginPath(); ctx.moveTo(bx, by + cl); ctx.lineTo(bx, by); ctx.lineTo(bx + cl, by); ctx.stroke();
-  // Top-right corner
   ctx.beginPath(); ctx.moveTo(bx + bw - cl, by); ctx.lineTo(bx + bw, by); ctx.lineTo(bx + bw, by + cl); ctx.stroke();
-  // Bottom-left corner
   ctx.beginPath(); ctx.moveTo(bx, by + bh - cl); ctx.lineTo(bx, by + bh); ctx.lineTo(bx + cl, by + bh); ctx.stroke();
-  // Bottom-right corner
   ctx.beginPath(); ctx.moveTo(bx + bw - cl, by + bh); ctx.lineTo(bx + bw, by + bh); ctx.lineTo(bx + bw, by + bh - cl); ctx.stroke();
-
   ctx.shadowBlur = 0;
 
-  // Scan line (only during detecting/mapping)
   if (status !== "locked") {
     const sy = by + (scanY / 100) * bh;
     const grad = ctx.createLinearGradient(bx, sy, bx + bw, sy);
@@ -162,7 +175,6 @@ const STATUS_CFG = {
 export default function UploadPage() {
   const router = useRouter();
   const { t, lang } = useLang();
-  const inputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -181,17 +193,37 @@ export default function UploadPage() {
   const lastFrameTsRef = useRef(0);
   const metricsRef = useRef<LiveMetrics | null>(null);
 
-  // React state for UI
+  // React state
   const [detectionStatus, setDetectionStatus] = useState<DetectionStatus>("detecting");
   const [revealCount, setRevealCount] = useState(0);
   const [metrics, setMetrics] = useState<LiveMetrics | null>(null);
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [dragActive, setDragActive] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [modalAngle, setModalAngle] = useState<AngleId | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraLoading, setCameraLoading] = useState(false);
+  const [capturedPhotos, setCapturedPhotos] = useState<Partial<Record<AngleId, string>>>({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const ANGLES: Array<{ id: AngleId; label: string; sublabel: string; instruction: string }> = [
+    {
+      id: "front",
+      label: t.upload.angleFront,
+      sublabel: t.upload.angleFrontSub,
+      instruction: t.upload.cameraInstructFront,
+    },
+    {
+      id: "left",
+      label: t.upload.angleLeft,
+      sublabel: t.upload.angleLeftSub,
+      instruction: t.upload.cameraInstructLeft,
+    },
+    {
+      id: "right",
+      label: t.upload.angleRight,
+      sublabel: t.upload.angleRightSub,
+      instruction: t.upload.cameraInstructRight,
+    },
+  ];
 
   useEffect(() => {
     return () => {
@@ -200,77 +232,74 @@ export default function UploadPage() {
     };
   }, []);
 
-  const handleResults = useCallback((results: { multiFaceLandmarks?: Array<Array<{ x: number; y: number; z: number }>> }) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  const handleResults = useCallback(
+    (results: { multiFaceLandmarks?: Array<Array<{ x: number; y: number; z: number }>> }) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const cw = canvas.width;
+      const ch = canvas.height;
+      if (cw === 0 || ch === 0) return;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      const lms = results.multiFaceLandmarks?.[0];
 
-    const cw = canvas.width;
-    const ch = canvas.height;
-    if (cw === 0 || ch === 0) return;
+      if (!lms || lms.length < 10) {
+        noFaceCountRef.current++;
+        if (noFaceCountRef.current > 15) {
+          statusRef.current = "detecting";
+          revealCountRef.current = 0;
+          landmarksRef.current = null;
+          metricsRef.current = null;
+          setDetectionStatus("detecting");
+          setRevealCount(0);
+          setMetrics(null);
+        }
+        ctx.clearRect(0, 0, cw, ch);
+        return;
+      }
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+      noFaceCountRef.current = 0;
+      landmarksRef.current = lms;
 
-    const lms = results.multiFaceLandmarks?.[0];
+      const now = performance.now();
+      if (lastFrameTsRef.current === 0) lastFrameTsRef.current = now;
+      const dt = now - lastFrameTsRef.current;
+      lastFrameTsRef.current = now;
 
-    if (!lms || lms.length < 10) {
-      noFaceCountRef.current++;
-      if (noFaceCountRef.current > 15) {
-        statusRef.current = "detecting";
+      if (statusRef.current === "detecting") {
+        statusRef.current = "mapping";
+        mappingStartRef.current = now;
         revealCountRef.current = 0;
-        landmarksRef.current = null;
-        metricsRef.current = null;
-        setDetectionStatus("detecting");
-        setRevealCount(0);
-        setMetrics(null);
+        setDetectionStatus("mapping");
       }
-      ctx.clearRect(0, 0, cw, ch);
-      return;
-    }
 
-    noFaceCountRef.current = 0;
-    landmarksRef.current = lms;
-
-    const now = performance.now();
-    if (lastFrameTsRef.current === 0) lastFrameTsRef.current = now;
-    const dt = now - lastFrameTsRef.current;
-    lastFrameTsRef.current = now;
-
-    // Status transitions
-    if (statusRef.current === "detecting") {
-      statusRef.current = "mapping";
-      mappingStartRef.current = now;
-      revealCountRef.current = 0;
-      setDetectionStatus("mapping");
-    }
-
-    if (statusRef.current === "mapping") {
-      const elapsed = now - mappingStartRef.current;
-      const progress = Math.min(elapsed / 900, 1);
-      revealCountRef.current = Math.round(progress * lms.length);
-      setRevealCount(revealCountRef.current);
-      if (progress >= 1) {
-        statusRef.current = "locked";
-        setDetectionStatus("locked");
+      if (statusRef.current === "mapping") {
+        const elapsed = now - mappingStartRef.current;
+        const progress = Math.min(elapsed / 900, 1);
+        revealCountRef.current = Math.round(progress * lms.length);
+        setRevealCount(revealCountRef.current);
+        if (progress >= 1) {
+          statusRef.current = "locked";
+          setDetectionStatus("locked");
+        }
       }
-    }
 
-    // Animate scan line
-    if (statusRef.current !== "locked") {
-      scanYRef.current += scanDirRef.current * dt * 0.08;
-      if (scanYRef.current >= 100) { scanYRef.current = 100; scanDirRef.current = -1; }
-      if (scanYRef.current <= 0) { scanYRef.current = 0; scanDirRef.current = 1; }
-    }
+      if (statusRef.current !== "locked") {
+        scanYRef.current += scanDirRef.current * dt * 0.08;
+        if (scanYRef.current >= 100) { scanYRef.current = 100; scanDirRef.current = -1; }
+        if (scanYRef.current <= 0) { scanYRef.current = 0; scanDirRef.current = 1; }
+      }
 
-    // Update metrics when locked
-    if (statusRef.current === "locked") {
-      const m = computeMetrics(lms, cw, ch);
-      metricsRef.current = m;
-      setMetrics(m);
-    }
+      if (statusRef.current === "locked") {
+        const m = computeMetrics(lms, cw, ch);
+        metricsRef.current = m;
+        setMetrics(m);
+      }
 
-    drawOverlay(ctx, lms, cw, ch, revealCountRef.current, scanYRef.current, statusRef.current);
-  }, []);
+      drawOverlay(ctx, lms, cw, ch, revealCountRef.current, scanYRef.current, statusRef.current);
+    },
+    []
+  );
 
   const resetDetectionState = () => {
     statusRef.current = "detecting";
@@ -286,7 +315,8 @@ export default function UploadPage() {
     setMetrics(null);
   };
 
-  const startCamera = async () => {
+  const openCameraForAngle = async (angleId: AngleId) => {
+    setModalAngle(angleId);
     setCameraLoading(true);
     setError(null);
     resetDetectionState();
@@ -297,7 +327,6 @@ export default function UploadPage() {
       });
       streamRef.current = stream;
 
-      // Dynamic import — only runs in browser
       const { FaceMesh } = await import("@mediapipe/face_mesh");
       const faceMesh = new FaceMesh({
         locateFile: (file: string) =>
@@ -315,19 +344,16 @@ export default function UploadPage() {
       setCameraActive(true);
       setCameraLoading(false);
 
-      // Attach stream to video
       await new Promise<void>((resolve) => setTimeout(resolve, 50));
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play().catch(() => {});
       }
 
-      // RAF loop: send frames to FaceMesh
       const loop = async () => {
         if (!streamRef.current?.active || !videoRef.current || !faceMeshRef.current) return;
         const vid = videoRef.current;
         if (vid.readyState >= 2 && vid.videoWidth > 0) {
-          // Sync canvas size only when it changes (resizing clears canvas)
           if (canvasRef.current) {
             if (canvasRef.current.width !== vid.videoWidth) canvasRef.current.width = vid.videoWidth;
             if (canvasRef.current.height !== vid.videoHeight) canvasRef.current.height = vid.videoHeight;
@@ -335,7 +361,7 @@ export default function UploadPage() {
           try {
             await faceMeshRef.current.send({ image: vid });
           } catch {
-            // Silently ignore send errors
+            // ignore frame send errors
           }
         }
         rafRef.current = requestAnimationFrame(loop);
@@ -344,6 +370,8 @@ export default function UploadPage() {
     } catch {
       setError(t.upload.errCamera);
       setCameraLoading(false);
+      setCameraActive(false);
+      setModalAngle(null);
       streamRef.current?.getTracks().forEach((tr) => tr.stop());
       streamRef.current = null;
     }
@@ -356,15 +384,14 @@ export default function UploadPage() {
     faceMeshRef.current = null;
     resetDetectionState();
     setCameraActive(false);
+    setCameraLoading(false);
+    setModalAngle(null);
   };
 
-  const captureAndAnalyze = async () => {
+  const captureForAngle = (angleId: AngleId) => {
     const video = videoRef.current;
     if (!video) return;
-    setLoading(true);
-    setError(null);
 
-    // Capture current frame (mirrored like a selfie)
     const captureCanvas = document.createElement("canvas");
     captureCanvas.width = video.videoWidth;
     captureCanvas.height = video.videoHeight;
@@ -375,27 +402,36 @@ export default function UploadPage() {
       ctx.drawImage(video, 0, 0);
     }
     const base64 = captureCanvas.toDataURL("image/jpeg", 0.92);
-    const lmMetrics = metricsRef.current;
 
-    // Store downscaled photo for results before/after slider
-    const photoRatio = Math.min(1, 640 / captureCanvas.width);
-    const photoCanvas = document.createElement("canvas");
-    photoCanvas.width = Math.round(captureCanvas.width * photoRatio);
-    photoCanvas.height = Math.round(captureCanvas.height * photoRatio);
-    photoCanvas.getContext("2d")?.drawImage(captureCanvas, 0, 0, photoCanvas.width, photoCanvas.height);
-    sessionStorage.setItem("mogrank_photo", photoCanvas.toDataURL("image/jpeg", 0.82));
+    // Store downscaled front photo for before/after slider
+    if (angleId === "front") {
+      const photoRatio = Math.min(1, 640 / captureCanvas.width);
+      const photoCanvas = document.createElement("canvas");
+      photoCanvas.width = Math.round(captureCanvas.width * photoRatio);
+      photoCanvas.height = Math.round(captureCanvas.height * photoRatio);
+      photoCanvas.getContext("2d")?.drawImage(captureCanvas, 0, 0, photoCanvas.width, photoCanvas.height);
+      sessionStorage.setItem("mogrank_photo", photoCanvas.toDataURL("image/jpeg", 0.82));
+    }
 
+    setCapturedPhotos((prev) => ({ ...prev, [angleId]: base64 }));
     stopCamera();
+  };
+
+  const handleAnalyze = async () => {
+    const photos = capturedPhotos as Record<AngleId, string>;
+    if (!photos.front || !photos.left || !photos.right) return;
+
+    setLoading(true);
+    setError(null);
 
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          image: base64,
+          images: [photos.front, photos.left, photos.right],
           mimeType: "image/jpeg",
           lang,
-          ...(lmMetrics && { landmarkMetrics: lmMetrics }),
         }),
       });
 
@@ -413,63 +449,9 @@ export default function UploadPage() {
     }
   };
 
-  const handleFile = (f: File) => {
-    if (!f.type.startsWith("image/")) { setError(t.upload.errImageType); return; }
-    if (f.size > 10 * 1024 * 1024) { setError(t.upload.errImageSize); return; }
-    setError(null);
-    setFile(f);
-    setPreview(URL.createObjectURL(f));
-  };
-
-  const handleAnalyze = async () => {
-    if (!file) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const reader = new FileReader();
-      const base64 = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
-      // Store downscaled photo for results before/after slider
-      await new Promise<void>((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-          const ratio = Math.min(1, 640 / img.width);
-          const sc = document.createElement("canvas");
-          sc.width = Math.round(img.width * ratio);
-          sc.height = Math.round(img.height * ratio);
-          sc.getContext("2d")?.drawImage(img, 0, 0, sc.width, sc.height);
-          sessionStorage.setItem("mogrank_photo", sc.toDataURL("image/jpeg", 0.82));
-          resolve();
-        };
-        img.onerror = () => resolve();
-        img.src = base64;
-      });
-
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: base64, mimeType: file.type, lang }),
-      });
-
-      if (!res.ok) {
-        const { error: msg } = await res.json();
-        throw new Error(msg ?? t.upload.errAnalysisFailed);
-      }
-
-      const data = await res.json();
-      sessionStorage.setItem("mogrank_results", JSON.stringify(data));
-      router.push("/results");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t.upload.errSomethingWrong);
-      setLoading(false);
-    }
-  };
-
+  const allCaptured = ANGLES.every((a) => capturedPhotos[a.id]);
   const sCfg = STATUS_CFG[detectionStatus];
+  const activeAngle = ANGLES.find((a) => a.id === modalAngle);
 
   return (
     <main className="min-h-screen bg-[#0a0a0a] text-[#ededed] flex flex-col">
@@ -480,292 +462,268 @@ export default function UploadPage() {
         <LangToggle className="flex items-center text-[11px] font-bold tracking-[0.08em] text-white/60 hover:text-white/90 transition-opacity" />
       </nav>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-16">
+      <div className="flex-1 flex flex-col items-center px-6 py-12">
         <p className="text-xs uppercase tracking-[0.3em] text-[#e99846] mb-3 font-semibold">
           {t.upload.step}
         </p>
-        <h1 className="text-3xl sm:text-4xl font-black text-center mb-3">{t.upload.title}</h1>
-        <p className="text-white/40 text-center mb-10 max-w-sm">{t.upload.subtitle}</p>
+        <h1 className="text-3xl sm:text-4xl font-black text-center mb-3">
+          {t.upload.multiTitle}
+        </h1>
+        <p className="text-white/40 text-center mb-10 max-w-sm">{t.upload.multiSubtitle}</p>
 
-        {/* Camera initializing skeleton */}
-        {cameraLoading && (
-          <div className="w-full max-w-md aspect-video rounded-3xl bg-black/50 border border-white/10 flex flex-col items-center justify-center gap-3 mb-6">
-            <div className="w-8 h-8 border-2 border-[#5fd0bf] border-t-transparent rounded-full animate-spin" />
-            <span className="text-xs font-mono tracking-widest text-[#5fd0bf]/60 uppercase">
-              Initializing...
+        {/* 3-angle capture grid */}
+        <div className="w-full max-w-xl grid grid-cols-3 gap-4 mb-10">
+          {ANGLES.map((angle, idx) => {
+            const captured = capturedPhotos[angle.id];
+            return (
+              <div key={angle.id} className="flex flex-col items-center gap-2">
+                {/* Step indicator */}
+                <div className="flex items-center gap-1.5">
+                  <div
+                    className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors ${
+                      captured
+                        ? "bg-[#5fd0bf] text-[#0a0a0a]"
+                        : "bg-white/10 text-white/40"
+                    }`}
+                  >
+                    {captured ? "✓" : idx + 1}
+                  </div>
+                  <span className="text-xs font-semibold text-white/70">{angle.label}</span>
+                </div>
+
+                {/* Photo slot */}
+                <div
+                  className={`relative w-full rounded-2xl border-2 overflow-hidden transition-all duration-200 ${
+                    captured
+                      ? "border-[#5fd0bf]/50 aspect-[3/4]"
+                      : "border-dashed border-white/15 hover:border-[#e99846]/50 cursor-pointer aspect-[3/4] bg-white/[0.02]"
+                  }`}
+                  onClick={() => !captured && !loading && openCameraForAngle(angle.id)}
+                >
+                  {captured ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={captured}
+                        alt={angle.label}
+                        className="w-full h-full object-cover"
+                      />
+                      {/* Captured overlay */}
+                      <div className="absolute inset-0 bg-[#5fd0bf]/10 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-full bg-[#5fd0bf] flex items-center justify-center shadow-lg">
+                          <svg className="w-4 h-4 text-[#0a0a0a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      </div>
+                      {/* Retake button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCapturedPhotos((prev) => {
+                            const copy = { ...prev };
+                            delete copy[angle.id];
+                            return copy;
+                          });
+                        }}
+                        className="absolute bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[9px] font-bold bg-black/70 text-white/70 hover:text-white border border-white/20 whitespace-nowrap transition-colors"
+                      >
+                        {t.upload.retakeBtn}
+                      </button>
+                    </>
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-2">
+                      {/* Face guide SVG */}
+                      <div className="w-12 h-16 text-[#e99846]/50">
+                        <FaceGuide angleId={angle.id} />
+                      </div>
+                      {/* Camera icon */}
+                      <div className="flex items-center gap-1 px-2 py-1 rounded-full border border-[#e99846]/25 text-[#e99846]/50">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316Z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0Z" />
+                        </svg>
+                        <span className="text-[9px] font-bold">{t.upload.captureBtn}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Sublabel */}
+                <p className="text-[9px] text-white/30 text-center leading-tight px-1">
+                  {angle.sublabel}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Analyze button */}
+        <button
+          onClick={handleAnalyze}
+          disabled={!allCaptured || loading}
+          className={`px-10 py-4 rounded-full font-bold text-base transition-all duration-200 ${
+            allCaptured && !loading
+              ? "bg-[#e99846] text-[#0a0a0a] hover:bg-[#f0b060] hover:scale-105 shadow-lg shadow-[#e99846]/20"
+              : "bg-white/10 text-white/30 cursor-not-allowed"
+          }`}
+        >
+          {loading ? (
+            <span className="flex items-center gap-2">
+              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z" />
+              </svg>
+              {t.upload.analyzing}
             </span>
-          </div>
-        )}
-
-        {/* Camera view */}
-        {cameraActive && !cameraLoading && (
-          <div className="relative w-full max-w-md mb-6">
-            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full rounded-3xl block bg-black"
-              style={{ transform: "scaleX(-1)" }}
-            />
-            {/* Landmark + bracket canvas — mirrored to match video */}
-            <canvas
-              ref={canvasRef}
-              className="absolute inset-0 w-full h-full rounded-3xl pointer-events-none"
-              style={{ transform: "scaleX(-1)" }}
-            />
-
-            {/* Analyzing overlay */}
-            {loading && (
-              <div className="absolute inset-0 rounded-3xl flex flex-col items-center justify-center gap-3 bg-black/70 backdrop-blur-sm z-20">
-                <div className="w-8 h-8 border-2 border-[#e99846] border-t-transparent rounded-full animate-spin" />
-                <span className="font-mono text-xs tracking-[0.2em] text-[#e99846] uppercase">
-                  {t.upload.analyzing}
-                </span>
-              </div>
-            )}
-
-            {/* Status badge — top center */}
-            {!loading && (
-              <div className="absolute top-3 left-0 right-0 flex justify-center pointer-events-none z-10">
-                <span
-                  className="px-3 py-1 rounded-full text-[10px] font-mono font-bold tracking-[0.15em] border transition-all duration-300"
-                  style={{
-                    color: sCfg.color,
-                    borderColor: sCfg.border,
-                    background: sCfg.bg,
-                  }}
-                >
-                  {sCfg.label}
-                </span>
-              </div>
-            )}
-
-            {/* Real-time metrics — right side when locked */}
-            {!loading && metrics && detectionStatus === "locked" && (
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col gap-2 pointer-events-none z-10">
-                {[
-                  { label: "SYM", value: `${metrics.symmetry}%`, color: "#5fd0bf" },
-                  {
-                    label: "CANT",
-                    value: `${metrics.canthal > 0 ? "+" : ""}${metrics.canthal}°`,
-                    color: "#f97316",
-                  },
-                  { label: "JAW", value: metrics.jawGrade, color: "#e99846" },
-                ].map(({ label, value, color }) => (
-                  <div
-                    key={label}
-                    className="px-2 py-1.5 rounded-lg border text-center min-w-[52px]"
-                    style={{ borderColor: `${color}30`, background: `${color}10` }}
-                  >
-                    <div
-                      className="text-[8px] font-mono font-bold tracking-wider"
-                      style={{ color: `${color}80` }}
-                    >
-                      {label}
-                    </div>
-                    <div className="text-xs font-mono font-bold" style={{ color }}>
-                      {value}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Mapping progress counter — bottom-left */}
-            {!loading && detectionStatus === "mapping" && (
-              <div className="absolute bottom-[72px] left-4 pointer-events-none z-10">
-                <span className="text-[9px] font-mono text-[#f97316]/60 tracking-widest">
-                  {revealCount} / 468
-                </span>
-              </div>
-            )}
-
-            {/* Bottom controls */}
-            {!loading && (
-              <div className="absolute bottom-5 left-0 right-0 flex justify-center gap-4 items-center z-10">
-                <button
-                  onClick={stopCamera}
-                  className="px-5 py-2 rounded-full text-sm font-semibold border border-white/20 text-white/60 hover:text-white bg-black/60 transition-colors"
-                >
-                  {t.upload.cancel}
-                </button>
-
-                {detectionStatus === "locked" ? (
-                  <button
-                    onClick={captureAndAnalyze}
-                    className="px-7 py-2.5 rounded-full font-bold text-sm bg-[#5fd0bf] text-[#0a0a0a] hover:bg-[#7de0cf] hover:scale-105 transition-all shadow-lg shadow-[#5fd0bf]/20"
-                  >
-                    ANALYZE →
-                  </button>
-                ) : (
-                  // Disabled shutter while not locked
-                  <div
-                    className="w-14 h-14 rounded-full border-4 flex items-center justify-center opacity-25 cursor-not-allowed"
-                    style={{ borderColor: sCfg.color }}
-                  >
-                    <div
-                      className="w-9 h-9 rounded-full"
-                      style={{ background: sCfg.color }}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* File drop zone */}
-        {!cameraActive && !cameraLoading && (
-          <div
-            onClick={() => !loading && inputRef.current?.click()}
-            onDrop={(e) => {
-              e.preventDefault();
-              setDragActive(false);
-              const dropped = e.dataTransfer.files[0];
-              if (dropped) handleFile(dropped);
-            }}
-            onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
-            onDragLeave={() => setDragActive(false)}
-            className={`relative w-full max-w-md rounded-3xl border-2 border-dashed transition-all duration-200
-              ${loading ? "cursor-default" : "cursor-pointer"}
-              ${dragActive ? "border-[#e99846] bg-[#e99846]/8" : "border-white/15 hover:border-[#e99846]/50 bg-white/[0.02]"}
-              ${preview ? "p-3" : "p-12"}
-            `}
-          >
-            <input
-              ref={inputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
-            />
-
-            {preview ? (
-              <div className="relative">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={preview} alt="Preview" className="w-full rounded-2xl object-cover max-h-80" />
-
-                {loading && (
-                  <div className="absolute inset-0 rounded-2xl flex flex-col items-center justify-center gap-3 bg-black/60 backdrop-blur-sm">
-                    <svg className="w-8 h-8 animate-spin text-[#e99846]" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-                      <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    <span className="font-mono text-[11px] tracking-[0.2em] text-[#e99846] uppercase">
-                      {t.upload.analyzing}
-                    </span>
-                  </div>
-                )}
-
-                {!loading && (
-                  <>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setFile(null);
-                        setPreview(null);
-                        setError(null);
-                      }}
-                      className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-black/90 transition-colors text-sm"
-                    >
-                      ✕
-                    </button>
-                    <p className="text-center text-xs text-white/40 mt-3 mb-1">
-                      {file?.name} · {((file?.size ?? 0) / 1024).toFixed(0)} KB
-                    </p>
-                  </>
-                )}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-4 text-center">
-                <div className="w-16 h-16 rounded-2xl border border-white/10 flex items-center justify-center bg-white/5">
-                  <svg
-                    className="w-7 h-7 text-[#e99846]"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={1.5}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="font-semibold text-white/80">{t.upload.dropHere}</p>
-                  <p className="text-sm text-white/35 mt-1">
-                    or <span className="text-[#e99846]">{t.upload.clickBrowse}</span>
-                  </p>
-                </div>
-                <p className="text-xs text-white/25">{t.upload.fileHint}</p>
-              </div>
-            )}
-          </div>
-        )}
+          ) : (
+            t.upload.analyseBtn
+          )}
+        </button>
 
         {error && (
           <p className="mt-4 text-red-400 text-sm text-center max-w-md">{error}</p>
         )}
 
-        {/* Analyze button (file upload mode) */}
-        {!cameraActive && !cameraLoading && (
-          <button
-            onClick={handleAnalyze}
-            disabled={!file || loading}
-            className={`mt-8 px-10 py-4 rounded-full font-bold text-base transition-all duration-200
-              ${file && !loading
-                ? "bg-[#e99846] text-[#0a0a0a] hover:bg-[#f0b060] hover:scale-105 shadow-lg shadow-[#e99846]/20"
-                : "bg-white/10 text-white/30 cursor-not-allowed"
-              }`}
-          >
-            {loading ? (
-              <span className="flex items-center gap-2">
-                <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z" />
-                </svg>
-                {t.upload.analyzing}
-              </span>
-            ) : (
-              t.upload.analyzeBtn
-            )}
-          </button>
-        )}
-
-        {/* Open camera button */}
-        {!cameraActive && !cameraLoading && !loading && !file && (
-          <button
-            onClick={startCamera}
-            className="mt-3 flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-sm border border-white/15 text-white/50 hover:text-white hover:border-white/30 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
-            </svg>
-            {t.upload.useCamera}
-          </button>
-        )}
-
-        {/* Tips */}
-        {!cameraActive && !cameraLoading && !loading && (
-          <div className="mt-12 max-w-md w-full grid grid-cols-3 gap-4">
-            {[
-              { icon: "☀", label: t.upload.tip1Label, sub: t.upload.tip1Sub },
-              { icon: "👤", label: t.upload.tip2Label, sub: t.upload.tip2Sub },
-              { icon: "😐", label: t.upload.tip3Label, sub: t.upload.tip3Sub },
-            ].map((tip) => (
-              <div
-                key={tip.label}
-                className="flex flex-col items-center text-center gap-1 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]"
-              >
-                <span className="text-xl">{tip.icon}</span>
-                <span className="text-xs font-semibold text-white/70">{tip.label}</span>
-                <span className="text-xs text-white/30">{tip.sub}</span>
-              </div>
-            ))}
-          </div>
+        {/* Progress hint when not all captured */}
+        {!allCaptured && !loading && (
+          <p className="mt-3 text-xs text-white/25 text-center">
+            {ANGLES.filter((a) => capturedPhotos[a.id]).length} / 3
+          </p>
         )}
       </div>
+
+      {/* Camera modal */}
+      {modalAngle && (
+        <div className="fixed inset-0 z-50 bg-black flex flex-col">
+          {/* Header */}
+          <div className="flex-none flex items-center justify-between px-6 py-4 border-b border-white/10">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-[#e99846]/80 font-mono font-bold">
+                {activeAngle?.label}
+              </p>
+              <p className="text-sm text-white/55 mt-0.5">{activeAngle?.instruction}</p>
+            </div>
+            <button
+              onClick={stopCamera}
+              className="px-4 py-2 rounded-full text-sm font-semibold border border-white/20 text-white/60 hover:text-white transition-colors"
+            >
+              {t.upload.cancel}
+            </button>
+          </div>
+
+          {/* Camera loading */}
+          {cameraLoading && (
+            <div className="flex-1 flex flex-col items-center justify-center gap-4">
+              <div className="w-10 h-10 border-2 border-[#5fd0bf] border-t-transparent rounded-full animate-spin" />
+              <span className="text-xs font-mono tracking-widest text-[#5fd0bf]/60 uppercase">
+                Initializing…
+              </span>
+            </div>
+          )}
+
+          {/* Live camera view */}
+          {cameraActive && !cameraLoading && (
+            <>
+              <div className="flex-1 relative overflow-hidden">
+                {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="absolute inset-0 w-full h-full object-cover"
+                  style={{ transform: "scaleX(-1)" }}
+                />
+
+                {/* Face guide overlay */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="w-44 h-56 opacity-25" style={{ color: "#e99846" }}>
+                    <FaceGuide angleId={modalAngle} />
+                  </div>
+                </div>
+
+                {/* Landmark canvas */}
+                <canvas
+                  ref={canvasRef}
+                  className="absolute inset-0 w-full h-full pointer-events-none"
+                  style={{ transform: "scaleX(-1)" }}
+                />
+
+                {/* Status badge */}
+                <div className="absolute top-4 left-0 right-0 flex justify-center pointer-events-none">
+                  <span
+                    className="px-4 py-1.5 rounded-full text-[11px] font-mono font-bold tracking-[0.15em] border transition-all duration-300"
+                    style={{
+                      color: sCfg.color,
+                      borderColor: sCfg.border,
+                      background: sCfg.bg,
+                    }}
+                  >
+                    {sCfg.label}
+                  </span>
+                </div>
+
+                {/* Mapping counter */}
+                {detectionStatus === "mapping" && (
+                  <div className="absolute bottom-4 left-4 pointer-events-none">
+                    <span className="text-[9px] font-mono text-[#f97316]/60 tracking-widest">
+                      {revealCount} / 468
+                    </span>
+                  </div>
+                )}
+
+                {/* Real-time metrics */}
+                {metrics && detectionStatus === "locked" && (
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-2 pointer-events-none">
+                    {[
+                      { label: "SYM", value: `${metrics.symmetry}%`, color: "#5fd0bf" },
+                      {
+                        label: "CANT",
+                        value: `${metrics.canthal > 0 ? "+" : ""}${metrics.canthal}°`,
+                        color: "#f97316",
+                      },
+                      { label: "JAW", value: metrics.jawGrade, color: "#e99846" },
+                    ].map(({ label, value, color }) => (
+                      <div
+                        key={label}
+                        className="px-2 py-1.5 rounded-lg border text-center min-w-[52px]"
+                        style={{ borderColor: `${color}30`, background: `${color}10` }}
+                      >
+                        <div
+                          className="text-[8px] font-mono font-bold tracking-wider"
+                          style={{ color: `${color}80` }}
+                        >
+                          {label}
+                        </div>
+                        <div className="text-xs font-mono font-bold" style={{ color }}>
+                          {value}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Capture button bar */}
+              <div className="flex-none px-6 py-6 flex justify-center border-t border-white/10">
+                {detectionStatus === "locked" ? (
+                  <button
+                    onClick={() => captureForAngle(modalAngle)}
+                    className="px-12 py-4 rounded-full font-bold text-base bg-[#5fd0bf] text-[#0a0a0a] hover:bg-[#7de0cf] hover:scale-105 transition-all shadow-lg shadow-[#5fd0bf]/20"
+                  >
+                    {t.upload.captureBtn} →
+                  </button>
+                ) : (
+                  <div className="px-12 py-4 rounded-full font-bold text-base bg-white/8 text-white/25 cursor-not-allowed border border-white/10">
+                    {t.upload.captureBtn}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </main>
   );
 }
