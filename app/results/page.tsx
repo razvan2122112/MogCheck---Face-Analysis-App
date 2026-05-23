@@ -146,20 +146,204 @@ function PlanSection({
   );
 }
 
+// ── Canvas-based image enhancement ───────────────────────────────────────────
+
+interface AfterScores {
+  jawline: number;
+  skin: number;
+  symmetry: number;
+  overall: number;
+}
+
+function buildEnhancedImage(img: HTMLImageElement, scores: AfterScores): string {
+  const isWeakJaw  = scores.jawline  < 7;
+  const isBadSkin  = scores.skin     < 7;
+  const isLowScore = scores.overall  < 6;
+  const isAsymm    = scores.symmetry < 7;
+
+  // Work at capped resolution for performance
+  const scale = Math.min(1, 520 / Math.max(img.naturalWidth, img.naturalHeight));
+  const w = Math.round(img.naturalWidth  * scale);
+  const h = Math.round(img.naturalHeight * scale);
+
+  // ── Step 1: draw source ──────────────────────────────────────────────────
+  const srcCanvas = document.createElement("canvas");
+  srcCanvas.width = w; srcCanvas.height = h;
+  const sCtx = srcCanvas.getContext("2d")!;
+  sCtx.drawImage(img, 0, 0, w, h);
+  const srcPx = sCtx.getImageData(0, 0, w, h).data;
+
+  // ── Step 2: face slimming + colour + jaw shadow ──────────────────────────
+  const dstCanvas = document.createElement("canvas");
+  dstCanvas.width = w; dstCanvas.height = h;
+  const dCtx = dstCanvas.getContext("2d")!;
+  const dstIData = dCtx.createImageData(w, h);
+  const dstPx = dstIData.data;
+
+  // Strength parameters
+  const slimStrength  = isWeakJaw  ? 0.87 : isLowScore ? 0.91 : 0.94;
+  const contrastAmt   = isBadSkin  ? 1.24 : isLowScore ? 1.19 : 1.15;
+  const brightAmt     = isBadSkin  ? 1.10 : 1.06;
+  const warmR         = isBadSkin  ? 14   : 9;
+  const coolB         = isBadSkin  ? -12  : -7;
+  const jawDark       = isWeakJaw  ? 0.76 : isLowScore ? 0.82 : 0.87;
+
+  const slimStart = Math.floor(h * 0.33);  // narrowing starts at 1/3 down
+  const cx        = w / 2;
+
+  // Face slimming: inverse-map each destination pixel to a source pixel
+  for (let y = 0; y < h; y++) {
+    const t      = y >= slimStart ? (y - slimStart) / (h - slimStart) : 0;
+    const factor = 1 + (slimStrength - 1) * t; // approaches slimStrength at bottom
+
+    for (let x = 0; x < w; x++) {
+      // Where in the source does this output pixel come from?
+      const sx  = Math.max(0, Math.min(w - 1.001, cx + (x - cx) / factor));
+      const x0  = Math.floor(sx);
+      const ft  = sx - x0;
+      const s0  = (y * w + x0) * 4;
+      const s1  = (y * w + x0 + 1) * 4;
+      const d   = (y * w + x) * 4;
+
+      for (let c = 0; c < 4; c++) {
+        dstPx[d + c] = srcPx[s0 + c] * (1 - ft) + srcPx[s1 + c] * ft;
+      }
+    }
+  }
+
+  // Colour enhancement + jaw shadow in a single pass
+  const jawStart = Math.floor(h * 0.44);
+  const edgeW    = Math.floor(w * 0.14);
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const d = (y * w + x) * 4;
+
+      let r = dstPx[d], g = dstPx[d + 1], b = dstPx[d + 2];
+
+      // Brightness then contrast (centred at 128)
+      r = (r * brightAmt - 128) * contrastAmt + 128;
+      g = (g * brightAmt - 128) * contrastAmt + 128;
+      b = (b * brightAmt - 128) * contrastAmt + 128;
+
+      // Warmth: more red, less blue
+      r += warmR; b += coolB;
+
+      // Jaw-edge shadow: darken left and right edges of lower face
+      if (y >= jawStart) {
+        const prog = (y - jawStart) / (h - jawStart);
+        let shadow = 1.0;
+        if (x < edgeW) {
+          shadow = 1 - (1 - jawDark) * (1 - x / edgeW) * prog;
+        } else if (x >= w - edgeW) {
+          shadow = 1 - (1 - jawDark) * (1 - (w - 1 - x) / edgeW) * prog;
+        }
+        r *= shadow; g *= shadow; b *= shadow;
+      }
+
+      dstPx[d]     = Math.max(0, Math.min(255, r));
+      dstPx[d + 1] = Math.max(0, Math.min(255, g));
+      dstPx[d + 2] = Math.max(0, Math.min(255, b));
+    }
+  }
+
+  dCtx.putImageData(dstIData, 0, 0);
+
+  // ── Step 3: symmetry correction (subtle mirror blend) ───────────────────
+  if (isAsymm) {
+    const mirrorCanvas = document.createElement("canvas");
+    mirrorCanvas.width = w; mirrorCanvas.height = h;
+    const mCtx = mirrorCanvas.getContext("2d")!;
+    mCtx.save();
+    mCtx.scale(-1, 1);
+    mCtx.drawImage(dstCanvas, -w, 0);
+    mCtx.restore();
+    // Blend 8% of the mirrored version on top → subtle symmetry push
+    dCtx.globalAlpha = 0.08;
+    dCtx.drawImage(mirrorCanvas, 0, 0);
+    dCtx.globalAlpha = 1.0;
+  }
+
+  // ── Step 4: sharpening (unsharp mask) ───────────────────────────────────
+  const sharpIData = dCtx.getImageData(0, 0, w, h);
+  const sp   = sharpIData.data;
+  const orig = new Uint8ClampedArray(sp);
+  const amount = isLowScore ? 0.45 : 0.35;
+
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const i = (y * w + x) * 4;
+      for (let c = 0; c < 3; c++) {
+        const centre = orig[i + c];
+        // Laplacian sharpening kernel: 5*c - N - S - W - E
+        const sharpened =
+          5 * centre
+          - orig[((y - 1) * w + x    ) * 4 + c]
+          - orig[((y + 1) * w + x    ) * 4 + c]
+          - orig[(y       * w + x - 1) * 4 + c]
+          - orig[(y       * w + x + 1) * 4 + c];
+        sp[i + c] = Math.max(0, Math.min(255, centre + amount * (sharpened - centre)));
+      }
+    }
+  }
+  dCtx.putImageData(sharpIData, 0, 0);
+
+  return dstCanvas.toDataURL("image/jpeg", 0.88);
+}
+
 // ── Before / After interactive slider ────────────────────────────────────────
 
 function BeforeAfterSlider({
   photoUrl,
   labelNow,
   labelAfter,
+  generatingLabel,
+  scores,
 }: {
   photoUrl: string;
   labelNow: string;
   labelAfter: string;
+  generatingLabel: string;
+  scores: AfterScores;
 }) {
-  const [pct, setPct] = useState(50);
+  const [enhancedUrl, setEnhancedUrl] = useState<string | null>(null);
+  const [processing, setProcessing]   = useState(true);
+  const [scanPct, setScanPct]          = useState(0);
+  const [pct, setPct]                  = useState(50);
   const containerRef = useRef<HTMLDivElement>(null);
-  const dragging = useRef(false);
+  const dragging     = useRef(false);
+  const scanRaf      = useRef<number>(0);
+  const scanStart    = useRef<number>(0);
+
+  // Animate scan line during loading
+  useEffect(() => {
+    if (!processing) return;
+    const animate = (ts: number) => {
+      if (!scanStart.current) scanStart.current = ts;
+      const elapsed = (ts - scanStart.current) % 2200;
+      setScanPct((elapsed / 2200) * 110 - 5); // -5 to 105 so it fully exits
+      scanRaf.current = requestAnimationFrame(animate);
+    };
+    scanRaf.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(scanRaf.current);
+  }, [processing]);
+
+  // Build enhanced image, minimum 3.5s display of loading state
+  useEffect(() => {
+    const t0 = Date.now();
+    const img = new Image();
+    img.onload = () => {
+      const url = buildEnhancedImage(img, scores);
+      const elapsed = Date.now() - t0;
+      const wait = Math.max(0, 3500 - elapsed);
+      setTimeout(() => {
+        setEnhancedUrl(url);
+        setProcessing(false);
+        cancelAnimationFrame(scanRaf.current);
+      }, wait);
+    };
+    img.src = photoUrl;
+  }, [photoUrl, scores]);
 
   const updatePct = (clientX: number) => {
     if (!containerRef.current) return;
@@ -167,10 +351,78 @@ function BeforeAfterSlider({
     setPct(Math.min(Math.max(((clientX - left) / width) * 100, 3), 97));
   };
 
+  // ── Loading state ──────────────────────────────────────────────────────
+  if (processing) {
+    return (
+      <div className="relative w-full overflow-hidden" style={{ aspectRatio: "4/5" }}>
+        <style>{`@keyframes fadeInOut{0%,100%{opacity:.5}50%{opacity:1}}`}</style>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={photoUrl}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          style={{ filter: "blur(2px) brightness(0.7)", transform: "scale(1.04)" }}
+          draggable={false}
+        />
+        {/* Dark overlay */}
+        <div className="absolute inset-0 bg-black/55" />
+
+        {/* Scan beam */}
+        <div
+          className="absolute left-0 right-0 pointer-events-none"
+          style={{
+            top: `${scanPct}%`,
+            height: "18%",
+            background: "linear-gradient(to bottom, transparent, rgba(94,208,191,0.18) 40%, rgba(94,208,191,0.35) 50%, rgba(94,208,191,0.18) 60%, transparent)",
+            transition: "top 0.05s linear",
+          }}
+        />
+
+        {/* Corner brackets */}
+        {[
+          { top: "10%", left: "10%",  rotate: "0deg" },
+          { top: "10%", right: "10%", rotate: "90deg" },
+          { bottom: "10%", left: "10%",  rotate: "270deg" },
+          { bottom: "10%", right: "10%", rotate: "180deg" },
+        ].map((s, i) => (
+          <div
+            key={i}
+            className="absolute pointer-events-none"
+            style={{ ...s, width: 28, height: 28 }}
+          >
+            <svg viewBox="0 0 28 28" fill="none">
+              <path d="M2 14 L2 2 L14 2" stroke="#5fd0bf" strokeWidth="2.5" strokeLinecap="round" />
+            </svg>
+          </div>
+        ))}
+
+        {/* Processing text */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+          <div className="flex gap-1.5">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="w-1.5 h-1.5 rounded-full bg-[#5fd0bf]"
+                style={{ animation: `fadeInOut 1.2s ease-in-out ${i * 0.3}s infinite` }}
+              />
+            ))}
+          </div>
+          <p
+            className="text-[11px] font-mono font-bold tracking-widest text-[#5fd0bf] text-center px-8 uppercase"
+            style={{ animation: "fadeInOut 2s ease-in-out infinite" }}
+          >
+            {generatingLabel}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Slider ─────────────────────────────────────────────────────────────
   return (
     <div
       ref={containerRef}
-      className="relative w-full rounded-2xl overflow-hidden cursor-col-resize select-none"
+      className="relative w-full overflow-hidden cursor-col-resize select-none"
       style={{ aspectRatio: "4/5", touchAction: "none" }}
       onPointerDown={(e) => {
         dragging.current = true;
@@ -181,7 +433,7 @@ function BeforeAfterSlider({
       onPointerUp={() => { dragging.current = false; }}
       onPointerCancel={() => { dragging.current = false; }}
     >
-      {/* BEFORE — original photo, full width underneath */}
+      {/* BEFORE */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={photoUrl}
@@ -190,41 +442,25 @@ function BeforeAfterSlider({
         draggable={false}
       />
 
-      {/* AFTER — same photo with CSS filters, clipped to right of divider */}
-      <div
-        className="absolute inset-0"
-        style={{ clipPath: `inset(0 0 0 ${pct}%)` }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={photoUrl}
-          alt="After"
-          className="absolute inset-0 h-full object-cover pointer-events-none"
-          draggable={false}
-          style={{
-            /* Slightly wider + compressed horizontally to slim the face */
-            width: "112%",
-            left: "-6%",
-            transform: "scaleX(0.94)",
-            transformOrigin: "center center",
-            /* Better skin, sharper definition, warmer tone */
-            filter: "brightness(1.09) contrast(1.14) saturate(1.08) hue-rotate(-3deg)",
-          }}
-        />
-        {/* Subtle warm skin-tone overlay */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{ background: "linear-gradient(to bottom, rgba(255,220,160,0.04), rgba(240,195,130,0.07))" }}
-        />
-      </div>
+      {/* AFTER — canvas-processed image, clipped right of divider */}
+      {enhancedUrl && (
+        <div className="absolute inset-0" style={{ clipPath: `inset(0 0 0 ${pct}%)` }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={enhancedUrl}
+            alt="After"
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+            draggable={false}
+          />
+        </div>
+      )}
 
-      {/* Divider line + handle */}
+      {/* Divider */}
       <div
         className="absolute top-0 bottom-0 pointer-events-none"
         style={{ left: `${pct}%`, transform: "translateX(-50%)" }}
       >
         <div className="absolute inset-0 w-[2px] bg-white/90 left-1/2 -translate-x-1/2" />
-        {/* Circular handle */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white shadow-2xl flex items-center justify-center border border-white/20">
           <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l-4 3 4 3M16 9l4 3-4 3" />
@@ -894,6 +1130,13 @@ export default function ResultsPage() {
               photoUrl={photoUrl}
               labelNow={pw.labelNow}
               labelAfter={pw.labelAfter}
+              generatingLabel={pw.generatingLabel}
+              scores={{
+                jawline:  results.jawline_score,
+                skin:     results.skin_quality ?? 7,
+                symmetry: results.symmetry_score,
+                overall:  results.overall_score,
+              }}
             />
           ) : (
             <div className="px-6 pt-5">
