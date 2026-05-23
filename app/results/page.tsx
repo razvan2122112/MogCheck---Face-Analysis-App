@@ -156,139 +156,68 @@ interface AfterScores {
 }
 
 function buildEnhancedImage(img: HTMLImageElement, scores: AfterScores): string {
-  const isWeakJaw  = scores.jawline  < 7;
-  const isBadSkin  = scores.skin     < 7;
-  const isLowScore = scores.overall  < 6;
-  const isAsymm    = scores.symmetry < 7;
+  const w = img.naturalWidth;
+  const h = img.naturalHeight;
 
-  // Work at capped resolution for performance
-  const scale = Math.min(1, 520 / Math.max(img.naturalWidth, img.naturalHeight));
-  const w = Math.round(img.naturalWidth  * scale);
-  const h = Math.round(img.naturalHeight * scale);
+  console.log("[BeforeAfter] building enhanced image", w, "x", h, scores);
 
-  // ── Step 1: draw source ──────────────────────────────────────────────────
-  const srcCanvas = document.createElement("canvas");
-  srcCanvas.width = w; srcCanvas.height = h;
-  const sCtx = srcCanvas.getContext("2d")!;
-  sCtx.drawImage(img, 0, 0, w, h);
-  const srcPx = sCtx.getImageData(0, 0, w, h).data;
-
-  // ── Step 2: face slimming + colour + jaw shadow ──────────────────────────
-  const dstCanvas = document.createElement("canvas");
-  dstCanvas.width = w; dstCanvas.height = h;
-  const dCtx = dstCanvas.getContext("2d")!;
-  const dstIData = dCtx.createImageData(w, h);
-  const dstPx = dstIData.data;
-
-  // Strength parameters
-  const slimStrength  = isWeakJaw  ? 0.87 : isLowScore ? 0.91 : 0.94;
-  const contrastAmt   = isBadSkin  ? 1.24 : isLowScore ? 1.19 : 1.15;
-  const brightAmt     = isBadSkin  ? 1.10 : 1.06;
-  const warmR         = isBadSkin  ? 14   : 9;
-  const coolB         = isBadSkin  ? -12  : -7;
-  const jawDark       = isWeakJaw  ? 0.76 : isLowScore ? 0.82 : 0.87;
-
-  const slimStart = Math.floor(h * 0.33);  // narrowing starts at 1/3 down
-  const cx        = w / 2;
-
-  // Face slimming: inverse-map each destination pixel to a source pixel
-  for (let y = 0; y < h; y++) {
-    const t      = y >= slimStart ? (y - slimStart) / (h - slimStart) : 0;
-    const factor = 1 + (slimStrength - 1) * t; // approaches slimStrength at bottom
-
-    for (let x = 0; x < w; x++) {
-      // Where in the source does this output pixel come from?
-      const sx  = Math.max(0, Math.min(w - 1.001, cx + (x - cx) / factor));
-      const x0  = Math.floor(sx);
-      const ft  = sx - x0;
-      const s0  = (y * w + x0) * 4;
-      const s1  = (y * w + x0 + 1) * 4;
-      const d   = (y * w + x) * 4;
-
-      for (let c = 0; c < 4; c++) {
-        dstPx[d + c] = srcPx[s0 + c] * (1 - ft) + srcPx[s1 + c] * ft;
-      }
-    }
+  const canvas = document.createElement("canvas");
+  canvas.width  = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    console.error("[BeforeAfter] could not get 2d context");
+    return img.src;
   }
 
-  // Colour enhancement + jaw shadow in a single pass
-  const jawStart = Math.floor(h * 0.44);
-  const edgeW    = Math.floor(w * 0.14);
+  const isWeakJaw  = scores.jawline < 7;
+  const isBadSkin  = scores.skin    < 7;
+  const isLowScore = scores.overall < 6;
 
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const d = (y * w + x) * 4;
+  const contrast   = isBadSkin ? 1.22 : isLowScore ? 1.17 : 1.15;
+  const brightness = isBadSkin ? 1.10 : 1.06;
+  const saturate   = isBadSkin ? 1.15 : 1.10;
+  const filterStr  = `contrast(${contrast}) brightness(${brightness}) saturate(${saturate}) hue-rotate(-3deg)`;
 
-      let r = dstPx[d], g = dstPx[d + 1], b = dstPx[d + 2];
+  const slimFactor = isWeakJaw ? 0.88 : isLowScore ? 0.91 : 0.94;
+  const slimW      = Math.round(w * slimFactor);
+  const slimOffset = Math.round((w - slimW) / 2);
+  const splitY     = Math.floor(h * 0.30);
 
-      // Brightness then contrast (centred at 128)
-      r = (r * brightAmt - 128) * contrastAmt + 128;
-      g = (g * brightAmt - 128) * contrastAmt + 128;
-      b = (b * brightAmt - 128) * contrastAmt + 128;
+  // Step 1: full image with colour filter
+  ctx.filter = filterStr;
+  ctx.drawImage(img, 0, 0, w, h);
+  ctx.filter = "none";
 
-      // Warmth: more red, less blue
-      r += warmR; b += coolB;
+  // Step 2: lower face redrawn compressed via ctx.transform
+  ctx.save();
+  ctx.translate(slimOffset, 0);
+  ctx.scale(slimFactor, 1);
+  ctx.filter = filterStr;
+  ctx.drawImage(img, 0, splitY, w, h - splitY, 0, splitY, w, h - splitY);
+  ctx.filter = "none";
+  ctx.restore();
 
-      // Jaw-edge shadow: darken left and right edges of lower face
-      if (y >= jawStart) {
-        const prog = (y - jawStart) / (h - jawStart);
-        let shadow = 1.0;
-        if (x < edgeW) {
-          shadow = 1 - (1 - jawDark) * (1 - x / edgeW) * prog;
-        } else if (x >= w - edgeW) {
-          shadow = 1 - (1 - jawDark) * (1 - (w - 1 - x) / edgeW) * prog;
-        }
-        r *= shadow; g *= shadow; b *= shadow;
-      }
+  // Step 3: jaw shadow gradients
+  const jawY  = Math.floor(h * 0.44);
+  const edgeW = Math.floor(w * 0.14);
+  const alpha = isWeakJaw ? 0.28 : isLowScore ? 0.20 : 0.14;
 
-      dstPx[d]     = Math.max(0, Math.min(255, r));
-      dstPx[d + 1] = Math.max(0, Math.min(255, g));
-      dstPx[d + 2] = Math.max(0, Math.min(255, b));
-    }
-  }
+  const leftGrad = ctx.createLinearGradient(0, 0, edgeW, 0);
+  leftGrad.addColorStop(0, `rgba(0,0,0,${alpha})`);
+  leftGrad.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = leftGrad;
+  ctx.fillRect(0, jawY, edgeW, h - jawY);
 
-  dCtx.putImageData(dstIData, 0, 0);
+  const rightGrad = ctx.createLinearGradient(w, 0, w - edgeW, 0);
+  rightGrad.addColorStop(0, `rgba(0,0,0,${alpha})`);
+  rightGrad.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = rightGrad;
+  ctx.fillRect(w - edgeW, jawY, edgeW, h - jawY);
 
-  // ── Step 3: symmetry correction (subtle mirror blend) ───────────────────
-  if (isAsymm) {
-    const mirrorCanvas = document.createElement("canvas");
-    mirrorCanvas.width = w; mirrorCanvas.height = h;
-    const mCtx = mirrorCanvas.getContext("2d")!;
-    mCtx.save();
-    mCtx.scale(-1, 1);
-    mCtx.drawImage(dstCanvas, -w, 0);
-    mCtx.restore();
-    // Blend 8% of the mirrored version on top → subtle symmetry push
-    dCtx.globalAlpha = 0.08;
-    dCtx.drawImage(mirrorCanvas, 0, 0);
-    dCtx.globalAlpha = 1.0;
-  }
-
-  // ── Step 4: sharpening (unsharp mask) ───────────────────────────────────
-  const sharpIData = dCtx.getImageData(0, 0, w, h);
-  const sp   = sharpIData.data;
-  const orig = new Uint8ClampedArray(sp);
-  const amount = isLowScore ? 0.45 : 0.35;
-
-  for (let y = 1; y < h - 1; y++) {
-    for (let x = 1; x < w - 1; x++) {
-      const i = (y * w + x) * 4;
-      for (let c = 0; c < 3; c++) {
-        const centre = orig[i + c];
-        // Laplacian sharpening kernel: 5*c - N - S - W - E
-        const sharpened =
-          5 * centre
-          - orig[((y - 1) * w + x    ) * 4 + c]
-          - orig[((y + 1) * w + x    ) * 4 + c]
-          - orig[(y       * w + x - 1) * 4 + c]
-          - orig[(y       * w + x + 1) * 4 + c];
-        sp[i + c] = Math.max(0, Math.min(255, centre + amount * (sharpened - centre)));
-      }
-    }
-  }
-  dCtx.putImageData(sharpIData, 0, 0);
-
-  return dstCanvas.toDataURL("image/jpeg", 0.88);
+  const result = canvas.toDataURL("image/jpeg", 0.88);
+  console.log("[BeforeAfter] done, data-url length:", result.length);
+  return result;
 }
 
 // ── Before / After interactive slider ────────────────────────────────────────
@@ -332,7 +261,9 @@ function BeforeAfterSlider({
   useEffect(() => {
     const t0 = Date.now();
     const img = new Image();
+    img.crossOrigin = "anonymous";
     img.onload = () => {
+      console.log("[BeforeAfter] image loaded:", img.naturalWidth, "x", img.naturalHeight);
       const url = buildEnhancedImage(img, scores);
       const elapsed = Date.now() - t0;
       const wait = Math.max(0, 3500 - elapsed);
@@ -341,6 +272,12 @@ function BeforeAfterSlider({
         setProcessing(false);
         cancelAnimationFrame(scanRaf.current);
       }, wait);
+    };
+    img.onerror = () => {
+      console.error("[BeforeAfter] image load failed, falling back to original");
+      setEnhancedUrl(photoUrl);
+      setProcessing(false);
+      cancelAnimationFrame(scanRaf.current);
     };
     img.src = photoUrl;
   }, [photoUrl, scores]);
