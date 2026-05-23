@@ -146,7 +146,7 @@ function PlanSection({
   );
 }
 
-// ── Canvas-based image enhancement ───────────────────────────────────────────
+// ── Canvas fallback enhancement (used if fal.ai call fails) ──────────────────
 
 interface AfterScores {
   jawline: number;
@@ -155,20 +155,14 @@ interface AfterScores {
   overall: number;
 }
 
-function buildEnhancedImage(img: HTMLImageElement, scores: AfterScores): string {
+function buildCanvasFallback(img: HTMLImageElement, scores: AfterScores): string {
   const w = img.naturalWidth;
   const h = img.naturalHeight;
-
-  console.log("[BeforeAfter] building enhanced image", w, "x", h, scores);
-
   const canvas = document.createElement("canvas");
   canvas.width  = w;
   canvas.height = h;
   const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    console.error("[BeforeAfter] could not get 2d context");
-    return img.src;
-  }
+  if (!ctx) return img.src;
 
   const isWeakJaw  = scores.jawline < 7;
   const isBadSkin  = scores.skin    < 7;
@@ -180,16 +174,13 @@ function buildEnhancedImage(img: HTMLImageElement, scores: AfterScores): string 
   const filterStr  = `contrast(${contrast}) brightness(${brightness}) saturate(${saturate}) hue-rotate(-3deg)`;
 
   const slimFactor = isWeakJaw ? 0.88 : isLowScore ? 0.91 : 0.94;
-  const slimW      = Math.round(w * slimFactor);
-  const slimOffset = Math.round((w - slimW) / 2);
+  const slimOffset = Math.round((w - Math.round(w * slimFactor)) / 2);
   const splitY     = Math.floor(h * 0.30);
 
-  // Step 1: full image with colour filter
   ctx.filter = filterStr;
   ctx.drawImage(img, 0, 0, w, h);
   ctx.filter = "none";
 
-  // Step 2: lower face redrawn compressed via ctx.transform
   ctx.save();
   ctx.translate(slimOffset, 0);
   ctx.scale(slimFactor, 1);
@@ -198,26 +189,23 @@ function buildEnhancedImage(img: HTMLImageElement, scores: AfterScores): string 
   ctx.filter = "none";
   ctx.restore();
 
-  // Step 3: jaw shadow gradients
   const jawY  = Math.floor(h * 0.44);
   const edgeW = Math.floor(w * 0.14);
   const alpha = isWeakJaw ? 0.28 : isLowScore ? 0.20 : 0.14;
 
-  const leftGrad = ctx.createLinearGradient(0, 0, edgeW, 0);
-  leftGrad.addColorStop(0, `rgba(0,0,0,${alpha})`);
-  leftGrad.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = leftGrad;
+  const lg = ctx.createLinearGradient(0, 0, edgeW, 0);
+  lg.addColorStop(0, `rgba(0,0,0,${alpha})`);
+  lg.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = lg;
   ctx.fillRect(0, jawY, edgeW, h - jawY);
 
-  const rightGrad = ctx.createLinearGradient(w, 0, w - edgeW, 0);
-  rightGrad.addColorStop(0, `rgba(0,0,0,${alpha})`);
-  rightGrad.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = rightGrad;
+  const rg = ctx.createLinearGradient(w, 0, w - edgeW, 0);
+  rg.addColorStop(0, `rgba(0,0,0,${alpha})`);
+  rg.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = rg;
   ctx.fillRect(w - edgeW, jawY, edgeW, h - jawY);
 
-  const result = canvas.toDataURL("image/jpeg", 0.88);
-  console.log("[BeforeAfter] done, data-url length:", result.length);
-  return result;
+  return canvas.toDataURL("image/jpeg", 0.88);
 }
 
 // ── Before / After interactive slider ────────────────────────────────────────
@@ -250,37 +238,54 @@ function BeforeAfterSlider({
     const animate = (ts: number) => {
       if (!scanStart.current) scanStart.current = ts;
       const elapsed = (ts - scanStart.current) % 2200;
-      setScanPct((elapsed / 2200) * 110 - 5); // -5 to 105 so it fully exits
+      setScanPct((elapsed / 2200) * 110 - 5);
       scanRaf.current = requestAnimationFrame(animate);
     };
     scanRaf.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(scanRaf.current);
   }, [processing]);
 
-  // Build enhanced image, minimum 3.5s display of loading state
+  // Call fal.ai transform API; fall back to canvas enhancement on error
   useEffect(() => {
-    const t0 = Date.now();
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      console.log("[BeforeAfter] image loaded:", img.naturalWidth, "x", img.naturalHeight);
-      const url = buildEnhancedImage(img, scores);
-      const elapsed = Date.now() - t0;
-      const wait = Math.max(0, 3500 - elapsed);
-      setTimeout(() => {
-        setEnhancedUrl(url);
-        setProcessing(false);
-        cancelAnimationFrame(scanRaf.current);
-      }, wait);
-    };
-    img.onerror = () => {
-      console.error("[BeforeAfter] image load failed, falling back to original");
-      setEnhancedUrl(photoUrl);
+    let cancelled = false;
+
+    const finish = (url: string) => {
+      if (cancelled) return;
+      setEnhancedUrl(url);
       setProcessing(false);
       cancelAnimationFrame(scanRaf.current);
     };
-    img.src = photoUrl;
-  }, [photoUrl, scores]);
+
+    const runFallback = () => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => finish(buildCanvasFallback(img, scores));
+      img.onerror = () => finish(photoUrl);
+      img.src = photoUrl;
+    };
+
+    fetch("/api/transform", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image: photoUrl }),
+    })
+      .then(async (res) => {
+        const data = (await res.json()) as { image?: string; error?: string };
+        if (!res.ok || !data.image) {
+          console.warn("[BeforeAfter] transform API failed, using canvas fallback:", data.error);
+          runFallback();
+        } else {
+          finish(data.image);
+        }
+      })
+      .catch((err) => {
+        console.warn("[BeforeAfter] transform fetch error, using canvas fallback:", err);
+        runFallback();
+      });
+
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [photoUrl]);
 
   const updatePct = (clientX: number) => {
     if (!containerRef.current) return;
