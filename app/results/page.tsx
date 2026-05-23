@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLang, LangToggle } from "../context/language";
@@ -146,236 +146,20 @@ function PlanSection({
   );
 }
 
-// ── Canvas fallback enhancement (used if fal.ai call fails) ──────────────────
-
-interface AfterScores {
-  jawline: number;
-  skin: number;
-  symmetry: number;
-  overall: number;
-}
-
-function buildCanvasFallback(img: HTMLImageElement, scores: AfterScores): string {
-  const w = img.naturalWidth;
-  const h = img.naturalHeight;
-  const canvas = document.createElement("canvas");
-  canvas.width  = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return img.src;
-
-  const isWeakJaw  = scores.jawline < 7;
-  const isBadSkin  = scores.skin    < 7;
-  const isLowScore = scores.overall < 6;
-
-  const contrast   = isBadSkin ? 1.22 : isLowScore ? 1.17 : 1.15;
-  const brightness = isBadSkin ? 1.10 : 1.06;
-  const saturate   = isBadSkin ? 1.15 : 1.10;
-  const filterStr  = `contrast(${contrast}) brightness(${brightness}) saturate(${saturate}) hue-rotate(-3deg)`;
-
-  const slimFactor = isWeakJaw ? 0.88 : isLowScore ? 0.91 : 0.94;
-  const slimOffset = Math.round((w - Math.round(w * slimFactor)) / 2);
-  const splitY     = Math.floor(h * 0.30);
-
-  ctx.filter = filterStr;
-  ctx.drawImage(img, 0, 0, w, h);
-  ctx.filter = "none";
-
-  ctx.save();
-  ctx.translate(slimOffset, 0);
-  ctx.scale(slimFactor, 1);
-  ctx.filter = filterStr;
-  ctx.drawImage(img, 0, splitY, w, h - splitY, 0, splitY, w, h - splitY);
-  ctx.filter = "none";
-  ctx.restore();
-
-  const jawY  = Math.floor(h * 0.44);
-  const edgeW = Math.floor(w * 0.14);
-  const alpha = isWeakJaw ? 0.28 : isLowScore ? 0.20 : 0.14;
-
-  const lg = ctx.createLinearGradient(0, 0, edgeW, 0);
-  lg.addColorStop(0, `rgba(0,0,0,${alpha})`);
-  lg.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = lg;
-  ctx.fillRect(0, jawY, edgeW, h - jawY);
-
-  const rg = ctx.createLinearGradient(w, 0, w - edgeW, 0);
-  rg.addColorStop(0, `rgba(0,0,0,${alpha})`);
-  rg.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = rg;
-  ctx.fillRect(w - edgeW, jawY, edgeW, h - jawY);
-
-  return canvas.toDataURL("image/jpeg", 0.88);
-}
-
-// ── Before / After interactive slider ────────────────────────────────────────
+// ── Before / After conversion hook ───────────────────────────────────────────
 
 function BeforeAfterSlider({
   photoUrl,
   labelNow,
-  labelAfter,
-  generatingLabel,
-  scores,
+  onUnlock,
 }: {
   photoUrl: string;
   labelNow: string;
-  labelAfter: string;
-  generatingLabel: string;
-  scores: AfterScores;
+  onUnlock: () => void;
 }) {
-  const [enhancedUrl, setEnhancedUrl] = useState<string | null>(null);
-  const [processing, setProcessing]   = useState(true);
-  const [scanPct, setScanPct]          = useState(0);
-  const [pct, setPct]                  = useState(50);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const dragging     = useRef(false);
-  const scanRaf      = useRef<number>(0);
-  const scanStart    = useRef<number>(0);
-
-  // Animate scan line during loading
-  useEffect(() => {
-    if (!processing) return;
-    const animate = (ts: number) => {
-      if (!scanStart.current) scanStart.current = ts;
-      const elapsed = (ts - scanStart.current) % 2200;
-      setScanPct((elapsed / 2200) * 110 - 5);
-      scanRaf.current = requestAnimationFrame(animate);
-    };
-    scanRaf.current = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(scanRaf.current);
-  }, [processing]);
-
-  // Call fal.ai transform API; fall back to canvas enhancement on error
-  useEffect(() => {
-    let cancelled = false;
-
-    const finish = (url: string) => {
-      if (cancelled) return;
-      setEnhancedUrl(url);
-      setProcessing(false);
-      cancelAnimationFrame(scanRaf.current);
-    };
-
-    const runFallback = () => {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => finish(buildCanvasFallback(img, scores));
-      img.onerror = () => finish(photoUrl);
-      img.src = photoUrl;
-    };
-
-    fetch("/api/transform", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image: photoUrl }),
-    })
-      .then(async (res) => {
-        const data = (await res.json()) as { image?: string; error?: string };
-        if (!res.ok || !data.image) {
-          console.warn("[BeforeAfter] transform API failed, using canvas fallback:", data.error);
-          runFallback();
-        } else {
-          finish(data.image);
-        }
-      })
-      .catch((err) => {
-        console.warn("[BeforeAfter] transform fetch error, using canvas fallback:", err);
-        runFallback();
-      });
-
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [photoUrl]);
-
-  const updatePct = (clientX: number) => {
-    if (!containerRef.current) return;
-    const { left, width } = containerRef.current.getBoundingClientRect();
-    setPct(Math.min(Math.max(((clientX - left) / width) * 100, 3), 97));
-  };
-
-  // ── Loading state ──────────────────────────────────────────────────────
-  if (processing) {
-    return (
-      <div className="relative w-full overflow-hidden" style={{ aspectRatio: "4/5" }}>
-        <style>{`@keyframes fadeInOut{0%,100%{opacity:.5}50%{opacity:1}}`}</style>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={photoUrl}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-          style={{ filter: "blur(2px) brightness(0.7)", transform: "scale(1.04)" }}
-          draggable={false}
-        />
-        {/* Dark overlay */}
-        <div className="absolute inset-0 bg-black/55" />
-
-        {/* Scan beam */}
-        <div
-          className="absolute left-0 right-0 pointer-events-none"
-          style={{
-            top: `${scanPct}%`,
-            height: "18%",
-            background: "linear-gradient(to bottom, transparent, rgba(94,208,191,0.18) 40%, rgba(94,208,191,0.35) 50%, rgba(94,208,191,0.18) 60%, transparent)",
-            transition: "top 0.05s linear",
-          }}
-        />
-
-        {/* Corner brackets */}
-        {[
-          { top: "10%", left: "10%",  rotate: "0deg" },
-          { top: "10%", right: "10%", rotate: "90deg" },
-          { bottom: "10%", left: "10%",  rotate: "270deg" },
-          { bottom: "10%", right: "10%", rotate: "180deg" },
-        ].map((s, i) => (
-          <div
-            key={i}
-            className="absolute pointer-events-none"
-            style={{ ...s, width: 28, height: 28 }}
-          >
-            <svg viewBox="0 0 28 28" fill="none">
-              <path d="M2 14 L2 2 L14 2" stroke="#5fd0bf" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
-          </div>
-        ))}
-
-        {/* Processing text */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-          <div className="flex gap-1.5">
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className="w-1.5 h-1.5 rounded-full bg-[#5fd0bf]"
-                style={{ animation: `fadeInOut 1.2s ease-in-out ${i * 0.3}s infinite` }}
-              />
-            ))}
-          </div>
-          <p
-            className="text-[11px] font-mono font-bold tracking-widest text-[#5fd0bf] text-center px-8 uppercase"
-            style={{ animation: "fadeInOut 2s ease-in-out infinite" }}
-          >
-            {generatingLabel}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Slider ─────────────────────────────────────────────────────────────
   return (
-    <div
-      ref={containerRef}
-      className="relative w-full overflow-hidden cursor-col-resize select-none"
-      style={{ aspectRatio: "4/5", touchAction: "none" }}
-      onPointerDown={(e) => {
-        dragging.current = true;
-        containerRef.current?.setPointerCapture(e.pointerId);
-        updatePct(e.clientX);
-      }}
-      onPointerMove={(e) => { if (dragging.current) updatePct(e.clientX); }}
-      onPointerUp={() => { dragging.current = false; }}
-      onPointerCancel={() => { dragging.current = false; }}
-    >
-      {/* BEFORE */}
+    <div className="relative w-full overflow-hidden select-none" style={{ aspectRatio: "4/5" }}>
+      {/* BEFORE — original photo, left half */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={photoUrl}
@@ -384,42 +168,48 @@ function BeforeAfterSlider({
         draggable={false}
       />
 
-      {/* AFTER — canvas-processed image, clipped right of divider */}
-      {enhancedUrl && (
-        <div className="absolute inset-0" style={{ clipPath: `inset(0 0 0 ${pct}%)` }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={enhancedUrl}
-            alt="After"
-            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-            draggable={false}
-          />
-        </div>
-      )}
-
-      {/* Divider */}
-      <div
-        className="absolute top-0 bottom-0 pointer-events-none"
-        style={{ left: `${pct}%`, transform: "translateX(-50%)" }}
-      >
-        <div className="absolute inset-0 w-[2px] bg-white/90 left-1/2 -translate-x-1/2" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white shadow-2xl flex items-center justify-center border border-white/20">
-          <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l-4 3 4 3M16 9l4 3-4 3" />
-          </svg>
-        </div>
+      {/* AFTER — same photo blurred, clipped to right half */}
+      <div className="absolute inset-0" style={{ clipPath: "inset(0 0 0 50%)" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={photoUrl}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          style={{ filter: "blur(20px)", transform: "scale(1.08)" }}
+          draggable={false}
+        />
       </div>
 
-      {/* Labels */}
+      {/* Lock overlay — right half */}
+      <div className="absolute top-0 right-0 bottom-0 w-1/2 flex flex-col items-center justify-center gap-3 px-4 text-center"
+        style={{ background: "linear-gradient(135deg, rgba(0,0,0,0.55) 0%, rgba(10,10,10,0.72) 100%)" }}
+      >
+        <div className="text-3xl leading-none">🔒</div>
+        <div className="flex flex-col gap-1">
+          <p className="text-white font-bold text-[11px] leading-tight tracking-wide">
+            Débloque ta<br />transformation
+          </p>
+          <p className="text-white/50 text-[9px] leading-snug">
+            Vois ton visage après<br />90 jours de looksmaxxing
+          </p>
+        </div>
+        <button
+          onClick={onUnlock}
+          className="mt-1 px-3 py-2 rounded-full text-[10px] font-bold tracking-wide bg-[#e99846] text-[#0a0a0a] hover:bg-[#f0b060] transition-colors leading-none"
+        >
+          Voir ma transformation →
+        </button>
+      </div>
+
+      {/* Divider */}
+      <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 pointer-events-none">
+        <div className="w-[2px] h-full bg-white/80" />
+      </div>
+
+      {/* MAINTENANT label */}
       <div className="absolute bottom-3 left-3 pointer-events-none">
         <span className="px-2 py-1 rounded-lg bg-black/65 backdrop-blur-sm text-white text-[9px] font-bold tracking-[0.15em]">
           {labelNow}
-        </span>
-      </div>
-      <div className="absolute bottom-3 right-3 pointer-events-none">
-        <span className="px-2 py-1 rounded-lg text-[9px] font-bold tracking-[0.12em]"
-          style={{ background: "rgba(233,152,70,0.85)", color: "#0a0a0a" }}>
-          {labelAfter}
         </span>
       </div>
     </div>
@@ -1071,14 +861,7 @@ export default function ResultsPage() {
             <BeforeAfterSlider
               photoUrl={photoUrl}
               labelNow={pw.labelNow}
-              labelAfter={pw.labelAfter}
-              generatingLabel={pw.generatingLabel}
-              scores={{
-                jawline:  results.jawline_score,
-                skin:     results.skin_quality ?? 7,
-                symmetry: results.symmetry_score,
-                overall:  results.overall_score,
-              }}
+              onUnlock={() => setShowPaywall(true)}
             />
           ) : (
             <div className="px-6 pt-5">
