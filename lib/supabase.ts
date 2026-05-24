@@ -1,5 +1,5 @@
 import { createBrowserClient, createServerClient } from "@supabase/auth-helpers-nextjs";
-import type { CookieOptions } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@supabase/supabase-js";
 
 const URL  = process.env.NEXT_PUBLIC_SUPABASE_URL  ?? "";
 const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
@@ -10,24 +10,32 @@ export function getBrowserClient() {
   return createBrowserClient(URL, ANON);
 }
 
-// ── Server / Route handler client (pass Next.js cookies()) ─────────────────
+// ── Server / Route handler client — uses modern getAll/setAll cookie API ───
 export function getServerClient(cookieStore: {
-  get(name: string): { value: string } | undefined;
-  set(name: string, value: string, options: CookieOptions): void;
-  remove(name: string, options: CookieOptions): void;
+  getAll(): { name: string; value: string }[];
+  set(name: string, value: string, options?: Record<string, unknown>): void;
 }) {
   return createServerClient(URL, ANON, {
     cookies: {
-      get:    (name) => cookieStore.get(name)?.value,
-      set:    (name, value, opts) => { try { cookieStore.set(name, value, opts); } catch {} },
-      remove: (name, opts)        => { try { cookieStore.remove(name, opts);     } catch {} },
+      getAll: () => cookieStore.getAll(),
+      setAll: (cookiesToSet) => {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          try { cookieStore.set(name, value, options as Record<string, unknown>); } catch {}
+        });
+      },
     },
   });
 }
 
-// ── Service-role client (only for server-side trusted operations) ──────────
+// ── Service-role client (server-side trusted operations only) ──────────────
 export function getServiceClient() {
-  return createBrowserClient(URL, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!URL || !serviceKey) {
+    throw new Error("Supabase service role env vars not configured");
+  }
+  return createClient(URL, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
 }
 
 export type Profile = {

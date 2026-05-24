@@ -30,8 +30,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchProfile = useCallback(async (uid: string) => {
     const client = supabaseRef.current;
     if (!client) return;
-    const { data } = await client.from("profiles").select("*").eq("id", uid).single();
-    if (data) setProfile(data as Profile);
+    try {
+      const { data } = await client.from("profiles").select("*").eq("id", uid).single();
+      if (data) setProfile(data as Profile);
+    } catch {
+      // profiles table may not exist yet — silently degrade
+    }
   }, []);
 
   useEffect(() => {

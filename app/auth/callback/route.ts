@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
 
   if (code) {
     const cookieStore = await cookies();
-    const supabase = getServerClient(cookieStore as unknown as Parameters<typeof getServerClient>[0]);
+    const supabase = getServerClient(cookieStore);
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
       return NextResponse.redirect(`${origin}${next}`);

@@ -30,35 +30,37 @@ export async function POST(req: NextRequest) {
     const analysisId  = session.metadata?.analysis_id ?? null;
     const amount      = session.amount_total ?? 0;
 
-    const supabase = getServiceClient();
+    try {
+      const supabase = getServiceClient();
 
-    // Record purchase
-    await supabase.from("purchases").upsert({
-      user_id:           userId,
-      stripe_session_id: session.id,
-      analysis_id:       analysisId,
-      plan,
-      amount,
-    }, { onConflict: "stripe_session_id" });
+      await supabase.from("purchases").upsert({
+        user_id:           userId,
+        stripe_session_id: session.id,
+        analysis_id:       analysisId,
+        plan,
+        amount,
+      }, { onConflict: "stripe_session_id" });
 
-    // Update profile if user is authenticated
-    if (userId) {
-      if (plan === "monthly") {
-        await supabase.from("profiles").update({
-          plan:            "monthly",
-          analyses_limit:  9999,
-        }).eq("id", userId);
-      } else {
-        // once: increment analyses_limit by 1, upgrade plan if still free
-        const { data: prof } = await supabase
-          .from("profiles").select("plan, analyses_limit").eq("id", userId).single();
-        const currentPlan  = (prof?.plan ?? "free") as string;
-        const currentLimit = (prof?.analyses_limit ?? 0) as number;
-        await supabase.from("profiles").update({
-          plan:           currentPlan === "monthly" ? "monthly" : "once",
-          analyses_limit: currentLimit + 1,
-        }).eq("id", userId);
+      if (userId) {
+        if (plan === "monthly") {
+          await supabase.from("profiles").update({
+            plan:           "monthly",
+            analyses_limit: 9999,
+          }).eq("id", userId);
+        } else {
+          const { data: prof } = await supabase
+            .from("profiles").select("plan, analyses_limit").eq("id", userId).single();
+          const currentPlan  = (prof?.plan ?? "free") as string;
+          const currentLimit = (prof?.analyses_limit ?? 0) as number;
+          await supabase.from("profiles").update({
+            plan:           currentPlan === "monthly" ? "monthly" : "once",
+            analyses_limit: currentLimit + 1,
+          }).eq("id", userId);
+        }
       }
+    } catch (err) {
+      console.error("Webhook DB error (tables may not be set up yet):", err);
+      // Still return 200 so Stripe doesn't retry
     }
   }
 

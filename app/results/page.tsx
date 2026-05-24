@@ -581,16 +581,19 @@ export default function ResultsPage() {
 
     if (profile.plan === "once") {
       // Check if this specific analysis was paid for
-      supabase?.from("purchases")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("analysis_id", aid ?? "")
-        .maybeSingle()
-        .then(({ data }) => {
+      (async () => {
+        try {
+          const { data } = await supabase!.from("purchases")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("analysis_id", aid ?? "")
+            .maybeSingle();
           setIsPro(!!data);
-          // For 'once' users: can do more analyses only if credits remain
           setLimitReached(profile.analyses_used >= profile.analyses_limit);
-        });
+        } catch {
+          setIsPro(false);
+        }
+      })();
       return;
     }
 
@@ -603,12 +606,17 @@ export default function ResultsPage() {
     if (!isPro || !user || !results) return;
     const aid = sessionStorage.getItem("mogrank_analysis_id");
     if (!aid) return;
-    supabase?.from("analyses").upsert({
-      user_id:    user.id,
-      session_id: aid,
-      score:      results.overall_score,
-      results,
-    }, { onConflict: "session_id" }).then(() => refreshProfile());
+    (async () => {
+      try {
+        await supabase!.from("analyses").upsert({
+          user_id:    user.id,
+          session_id: aid,
+          score:      results.overall_score,
+          results,
+        }, { onConflict: "session_id" });
+        refreshProfile();
+      } catch {}
+    })();
   }, [isPro, user, results, supabase, refreshProfile]);
 
   const startCheckout = async (plan: "once" | "monthly") => {

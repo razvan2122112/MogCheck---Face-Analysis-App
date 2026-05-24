@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
 
     // Get authenticated user (optional — anonymous checkout still works)
     const cookieStore = await cookies();
-    const supabase = getServerClient(cookieStore as unknown as Parameters<typeof getServerClient>[0]);
+    const supabase = getServerClient(cookieStore);
     const { data: { session } } = await supabase.auth.getSession();
     const userId = session?.user?.id ?? null;
 
