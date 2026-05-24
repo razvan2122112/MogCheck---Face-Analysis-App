@@ -8,11 +8,15 @@ export async function GET(req: NextRequest) {
   const next = searchParams.get("next") ?? "/";
 
   if (code) {
-    const cookieStore = await cookies();
-    const supabase = getServerClient(cookieStore);
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
+    try {
+      const cookieStore = await cookies();
+      const supabase = getServerClient(cookieStore);
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      if (!error) {
+        return NextResponse.redirect(`${origin}${next}`);
+      }
+    } catch (err) {
+      console.error("Auth callback error:", err);
     }
   }
 

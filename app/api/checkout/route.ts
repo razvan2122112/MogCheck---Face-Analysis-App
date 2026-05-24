@@ -27,10 +27,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Get authenticated user (optional — anonymous checkout still works)
-    const cookieStore = await cookies();
-    const supabase = getServerClient(cookieStore);
-    const { data: { session } } = await supabase.auth.getSession();
-    const userId = session?.user?.id ?? null;
+    let userId: string | null = null;
+    try {
+      const cookieStore = await cookies();
+      const supabase = getServerClient(cookieStore);
+      const { data: { session } } = await supabase.auth.getSession();
+      userId = session?.user?.id ?? null;
+    } catch {
+      // Supabase not configured — proceed without user association
+    }
 
     const stripe = new Stripe(secretKey);
     const stripeSession = await stripe.checkout.sessions.create({
