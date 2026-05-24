@@ -471,7 +471,10 @@ export default function UploadPage() {
         const { error: msg } = await res.json();
         throw new Error(msg ?? t.upload.errAnalysisFailed);
       }
-      sessionStorage.setItem("mogrank_results", JSON.stringify(await res.json()));
+      const analysisResult = await res.json();
+      const analysisId = `mog_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      sessionStorage.setItem("mogrank_analysis_id", analysisId);
+      sessionStorage.setItem("mogrank_results", JSON.stringify(analysisResult));
       router.push("/results");
     } catch (err) {
       setError(err instanceof Error ? err.message : t.upload.errSomethingWrong);

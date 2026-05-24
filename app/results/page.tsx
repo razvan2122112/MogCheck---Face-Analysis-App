@@ -500,7 +500,36 @@ export default function ResultsPage() {
   const [payError, setPayError] = useState<string | null>(null);
 
   useEffect(() => {
-    const raw = sessionStorage.getItem("mogrank_results");
+    const stripeSessionId = new URLSearchParams(window.location.search).get("session_id");
+
+    // Primary source: sessionStorage (normal flow)
+    let raw     = sessionStorage.getItem("mogrank_results");
+    let photoSS = sessionStorage.getItem("mogrank_photo");
+    let aid     = sessionStorage.getItem("mogrank_analysis_id");
+
+    // Fallback: if sessionStorage was wiped by the Stripe redirect (Safari/iOS),
+    // restore from the pre-redirect snapshot saved in localStorage.
+    if (!raw && stripeSessionId) {
+      try {
+        const pending = localStorage.getItem("mogrank_pending");
+        if (pending) {
+          const { id, results: savedResults, photo: savedPhoto } = JSON.parse(pending) as {
+            id: string;
+            results: AnalysisResult;
+            photo: string | null;
+          };
+          raw     = JSON.stringify(savedResults);
+          aid     = id;
+          photoSS = savedPhoto;
+          // Restore to sessionStorage so subsequent renders work normally
+          sessionStorage.setItem("mogrank_results", raw);
+          sessionStorage.setItem("mogrank_analysis_id", id);
+          if (savedPhoto) sessionStorage.setItem("mogrank_photo", savedPhoto);
+        }
+      } catch { /* ignore malformed pending data */ }
+      localStorage.removeItem("mogrank_pending");
+    }
+
     if (!raw) {
       router.replace("/upload");
       return;
@@ -508,29 +537,31 @@ export default function ResultsPage() {
     try {
       setResults(JSON.parse(raw));
       setLoaded(true);
-      const photo = sessionStorage.getItem("mogrank_photo");
-      if (photo) setPhotoUrl(photo);
+      if (photoSS) setPhotoUrl(photoSS);
     } catch {
       router.replace("/upload");
       return;
     }
 
-    // Existing pro status
-    if (localStorage.getItem("mogrank_pro") === "true") {
-      setIsPro(true);
-      return;
+    // Check if this specific analysis has already been paid for
+    if (aid) {
+      const paidIds: string[] = JSON.parse(localStorage.getItem("mogrank_paid_ids") ?? "[]");
+      if (paidIds.includes(aid)) {
+        setIsPro(true);
+        return;
+      }
     }
 
-    // Post-payment: Stripe redirects back with ?session_id=
-    const params = new URLSearchParams(window.location.search);
-    const sessionId = params.get("session_id");
-    if (sessionId) {
+    // Post-payment verification: Stripe redirects back with ?session_id=
+    if (stripeSessionId) {
       setVerifying(true);
-      fetch(`/api/verify-payment?session_id=${encodeURIComponent(sessionId)}`)
+      fetch(`/api/verify-payment?session_id=${encodeURIComponent(stripeSessionId)}`)
         .then((r) => r.json())
         .then(({ paid }: { paid: boolean }) => {
-          if (paid) {
-            localStorage.setItem("mogrank_pro", "true");
+          if (paid && aid) {
+            const paidIds: string[] = JSON.parse(localStorage.getItem("mogrank_paid_ids") ?? "[]");
+            if (!paidIds.includes(aid)) paidIds.push(aid);
+            localStorage.setItem("mogrank_paid_ids", JSON.stringify(paidIds));
             setIsPro(true);
           }
         })
@@ -546,6 +577,18 @@ export default function ResultsPage() {
     setCheckoutLoading(true);
     setPayError(null);
     try {
+      // Persist analysis data to localStorage before leaving for Stripe.
+      // sessionStorage is cleared when the browser navigates away on Safari/iOS.
+      const aid        = sessionStorage.getItem("mogrank_analysis_id");
+      const resultsRaw = sessionStorage.getItem("mogrank_results");
+      const photoRaw   = sessionStorage.getItem("mogrank_photo");
+      if (aid && resultsRaw) {
+        localStorage.setItem(
+          "mogrank_pending",
+          JSON.stringify({ id: aid, results: JSON.parse(resultsRaw), photo: photoRaw })
+        );
+      }
+
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
