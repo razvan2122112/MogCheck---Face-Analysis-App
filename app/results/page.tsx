@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLang, LangToggle } from "../context/language";
+import { useAuth } from "../context/auth";
+import { getBrowserClient } from "@/lib/supabase";
 import type { Translations } from "../lib/translations";
 
 interface DetectedFlaw {
@@ -488,80 +490,63 @@ function LockedMetricsPreview({
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function ResultsPage() {
-  const router = useRouter();
-  const { t } = useLang();
-  const [results, setResults] = useState<AnalysisResult | null>(null);
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState(false);
-  const [verifying, setVerifying] = useState(false);
-  const [isPro, setIsPro] = useState(false);
-  const [showPaywall, setShowPaywall] = useState(false);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [payError, setPayError] = useState<string | null>(null);
+  const router   = useRouter();
+  const { t }    = useLang();
+  const { user, profile, authLoading, signOut, refreshProfile } = useAuth();
+  const supabase = useRef(getBrowserClient()).current;
 
+  const [results, setResults]           = useState<AnalysisResult | null>(null);
+  const [photoUrl, setPhotoUrl]         = useState<string | null>(null);
+  const [loaded, setLoaded]             = useState(false);
+  const [verifying, setVerifying]       = useState(false);
+  const [isPro, setIsPro]               = useState(false);
+  const [showPaywall, setShowPaywall]   = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [payError, setPayError]         = useState<string | null>(null);
+  const [limitReached, setLimitReached] = useState(false);
+
+  // ── Step 1: load analysis data from sessionStorage (or pending snapshot) ──
   useEffect(() => {
     const stripeSessionId = new URLSearchParams(window.location.search).get("session_id");
 
-    // Primary source: sessionStorage (normal flow)
     let raw     = sessionStorage.getItem("mogrank_results");
     let photoSS = sessionStorage.getItem("mogrank_photo");
     let aid     = sessionStorage.getItem("mogrank_analysis_id");
 
-    // Fallback: if sessionStorage was wiped by the Stripe redirect (Safari/iOS),
-    // restore from the pre-redirect snapshot saved in localStorage.
+    // Restore from localStorage snapshot if sessionStorage was wiped (Safari/iOS)
     if (!raw && stripeSessionId) {
       try {
         const pending = localStorage.getItem("mogrank_pending");
         if (pending) {
           const { id, results: savedResults, photo: savedPhoto } = JSON.parse(pending) as {
-            id: string;
-            results: AnalysisResult;
-            photo: string | null;
+            id: string; results: AnalysisResult; photo: string | null;
           };
-          raw     = JSON.stringify(savedResults);
-          aid     = id;
+          raw = JSON.stringify(savedResults);
+          aid = id;
           photoSS = savedPhoto;
-          // Restore to sessionStorage so subsequent renders work normally
           sessionStorage.setItem("mogrank_results", raw);
           sessionStorage.setItem("mogrank_analysis_id", id);
           if (savedPhoto) sessionStorage.setItem("mogrank_photo", savedPhoto);
         }
-      } catch { /* ignore malformed pending data */ }
+      } catch { /* ignore */ }
       localStorage.removeItem("mogrank_pending");
     }
 
-    if (!raw) {
-      router.replace("/upload");
-      return;
-    }
+    if (!raw) { router.replace("/upload"); return; }
     try {
       setResults(JSON.parse(raw));
       setLoaded(true);
       if (photoSS) setPhotoUrl(photoSS);
-    } catch {
-      router.replace("/upload");
-      return;
-    }
+    } catch { router.replace("/upload"); return; }
 
-    // Check if this specific analysis has already been paid for
-    if (aid) {
-      const paidIds: string[] = JSON.parse(localStorage.getItem("mogrank_paid_ids") ?? "[]");
-      if (paidIds.includes(aid)) {
-        setIsPro(true);
-        return;
-      }
-    }
-
-    // Post-payment verification: Stripe redirects back with ?session_id=
+    // Stripe redirect: verify payment server-side then refresh profile
     if (stripeSessionId) {
       setVerifying(true);
       fetch(`/api/verify-payment?session_id=${encodeURIComponent(stripeSessionId)}`)
         .then((r) => r.json())
-        .then(({ paid }: { paid: boolean }) => {
-          if (paid && aid) {
-            const paidIds: string[] = JSON.parse(localStorage.getItem("mogrank_paid_ids") ?? "[]");
-            if (!paidIds.includes(aid)) paidIds.push(aid);
-            localStorage.setItem("mogrank_paid_ids", JSON.stringify(paidIds));
+        .then(async ({ paid }: { paid: boolean }) => {
+          if (paid) {
+            await refreshProfile();
             setIsPro(true);
           }
         })
@@ -571,28 +556,89 @@ export default function ResultsPage() {
           window.history.replaceState({}, "", "/results");
         });
     }
-  }, [router]);
+  }, [router, refreshProfile]);
+
+  // ── Step 2: determine isPro from Supabase profile (runs when profile loads) ─
+  useEffect(() => {
+    if (authLoading || !loaded) return;
+
+    if (!user) {
+      // Not logged in — teaser only, must log in to pay
+      setIsPro(false);
+      return;
+    }
+
+    if (!profile) return; // profile still loading
+
+    const aid = sessionStorage.getItem("mogrank_analysis_id");
+
+    if (profile.plan === "monthly") {
+      setIsPro(true);
+      // Check if new-analysis limit applies
+      setLimitReached(false);
+      return;
+    }
+
+    if (profile.plan === "once") {
+      // Check if this specific analysis was paid for
+      supabase?.from("purchases")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("analysis_id", aid ?? "")
+        .maybeSingle()
+        .then(({ data }) => {
+          setIsPro(!!data);
+          // For 'once' users: can do more analyses only if credits remain
+          setLimitReached(profile.analyses_used >= profile.analyses_limit);
+        });
+      return;
+    }
+
+    // Free plan: not pro
+    setIsPro(false);
+  }, [user, profile, authLoading, loaded, supabase]);
+
+  // ── Step 3: save analysis to Supabase when isPro unlocked ─────────────────
+  useEffect(() => {
+    if (!isPro || !user || !results) return;
+    const aid = sessionStorage.getItem("mogrank_analysis_id");
+    if (!aid) return;
+    supabase?.from("analyses").upsert({
+      user_id:    user.id,
+      session_id: aid,
+      score:      results.overall_score,
+      results,
+    }, { onConflict: "session_id" }).then(() => refreshProfile());
+  }, [isPro, user, results, supabase, refreshProfile]);
 
   const startCheckout = async (plan: "once" | "monthly") => {
-    setCheckoutLoading(true);
-    setPayError(null);
-    try {
-      // Persist analysis data to localStorage before leaving for Stripe.
-      // sessionStorage is cleared when the browser navigates away on Safari/iOS.
+    if (!user) {
+      // Redirect to login, storing pending data first
       const aid        = sessionStorage.getItem("mogrank_analysis_id");
       const resultsRaw = sessionStorage.getItem("mogrank_results");
       const photoRaw   = sessionStorage.getItem("mogrank_photo");
       if (aid && resultsRaw) {
-        localStorage.setItem(
-          "mogrank_pending",
-          JSON.stringify({ id: aid, results: JSON.parse(resultsRaw), photo: photoRaw })
-        );
+        localStorage.setItem("mogrank_pending",
+          JSON.stringify({ id: aid, results: JSON.parse(resultsRaw), photo: photoRaw }));
       }
+      router.push("/auth/login");
+      return;
+    }
 
+    setCheckoutLoading(true);
+    setPayError(null);
+    try {
+      const aid        = sessionStorage.getItem("mogrank_analysis_id");
+      const resultsRaw = sessionStorage.getItem("mogrank_results");
+      const photoRaw   = sessionStorage.getItem("mogrank_photo");
+      if (aid && resultsRaw) {
+        localStorage.setItem("mogrank_pending",
+          JSON.stringify({ id: aid, results: JSON.parse(resultsRaw), photo: photoRaw }));
+      }
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan, analysis_id: aid }),
       });
       const { url, error } = (await res.json()) as { url?: string; error?: string };
       if (url) {
@@ -656,10 +702,35 @@ export default function ResultsPage() {
       <Link href="/" className="text-xl font-bold tracking-widest gold-text">
         MOGRANK
       </Link>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <LangToggle className="flex items-center text-[11px] font-bold tracking-[0.08em] text-white/60 hover:text-white/90 transition-opacity" />
+        {user ? (
+          <>
+            <span className="text-[11px] text-white/30 hidden sm:block truncate max-w-[120px]">
+              {user.email}
+            </span>
+            <button
+              onClick={signOut}
+              className="text-xs text-white/40 hover:text-white/70 transition-colors border border-white/10 px-3 py-1.5 rounded-full"
+            >
+              Déconnexion
+            </button>
+          </>
+        ) : (
+          <>
+            <Link href="/auth/login"
+              className="text-xs text-white/40 hover:text-white/70 transition-colors">
+              Connexion
+            </Link>
+            <Link href="/auth/signup"
+              className="text-xs font-semibold px-3 py-1.5 rounded-full bg-[#e99846]/15 text-[#e99846] border border-[#e99846]/30 hover:bg-[#e99846]/25 transition-colors">
+              Inscription
+            </Link>
+          </>
+        )}
         <Link
-          href="/upload"
+          href={limitReached ? "#" : "/upload"}
+          onClick={limitReached ? () => setShowPaywall(true) : undefined}
           className="text-sm text-white/40 hover:text-white/70 transition-colors"
         >
           {t.results.newAnalysis}
