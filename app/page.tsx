@@ -321,7 +321,7 @@ export default function Home() {
               <span style={{ opacity: 0.3, margin: "0 3px" }}>/</span>
               <span style={{ opacity: lang === "fr" ? 1 : 0.35 }}>FR</span>
             </button>
-            <a href="#" className="btn btn-ghost" style={{ height: 38, padding: "0 14px", fontSize: 13 }}>{t.nav.signIn}</a>
+            <Link href="/auth/login" className="btn btn-ghost" style={{ height: 38, padding: "0 14px", fontSize: 13 }}>{t.nav.signIn}</Link>
             <Link href="/upload" className="btn btn-gold" style={{ height: 38, padding: "0 16px", fontSize: 13 }}>{t.nav.tryFree}</Link>
           </div>
         </div>

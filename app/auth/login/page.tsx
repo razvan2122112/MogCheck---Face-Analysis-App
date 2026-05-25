@@ -26,7 +26,7 @@ export default function LoginPage() {
       setError(err.message);
       setLoading(false);
     } else {
-      router.push("/results");
+      router.push("/upload");
     }
   };
 
