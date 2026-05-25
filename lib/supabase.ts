@@ -1,7 +1,18 @@
 import { createBrowserClient, createServerClient } from "@supabase/auth-helpers-nextjs";
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL  = process.env.NEXT_PUBLIC_SUPABASE_URL  ?? "";
+// Strip any accidental trailing path (e.g. /rest/v1) from the project URL.
+// NEXT_PUBLIC_SUPABASE_URL must be https://<project>.supabase.co with nothing after.
+function sanitizeUrl(raw: string): string {
+  try {
+    const u = new URL(raw);
+    return `${u.protocol}//${u.host}`;
+  } catch {
+    return raw;
+  }
+}
+
+const SUPABASE_URL  = sanitizeUrl(process.env.NEXT_PUBLIC_SUPABASE_URL  ?? "");
 const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
 // ── Client component singleton ─────────────────────────────────────────────
