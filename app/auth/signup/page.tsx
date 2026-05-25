@@ -22,11 +22,7 @@ export default function SignupPage() {
     }
     setLoading(true);
     setError(null);
-    const { error: err } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-    });
+    const { error: err } = await supabase.auth.signUp({ email, password });
     if (err) {
       setError(err.message);
       setLoading(false);
@@ -42,10 +38,7 @@ export default function SignupPage() {
       return;
     }
     setLoading(true);
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=/results` },
-    });
+    await supabase.auth.signInWithOAuth({ provider: "google" });
   };
 
   if (sent) {
