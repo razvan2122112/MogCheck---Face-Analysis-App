@@ -14,13 +14,11 @@ export function getBrowserClient() {
     );
   }
   if (!SUPABASE_URL || !SUPABASE_ANON) return null;
+  // Only add apikey in global headers — never override Authorization,
+  // which must be managed dynamically by the client's own fetch wrapper
+  // so it can swap anon key → user JWT after login.
   return createBrowserClient(SUPABASE_URL, SUPABASE_ANON, {
-    global: {
-      headers: {
-        apikey: SUPABASE_ANON,
-        Authorization: `Bearer ${SUPABASE_ANON}`,
-      },
-    },
+    global: { headers: { apikey: SUPABASE_ANON } },
   });
 }
 
@@ -44,12 +42,7 @@ export function getServerClient(cookieStore: {
         });
       },
     },
-    global: {
-      headers: {
-        apikey: SUPABASE_ANON,
-        Authorization: `Bearer ${SUPABASE_ANON}`,
-      },
-    },
+    global: { headers: { apikey: SUPABASE_ANON } },
   });
 }
 
@@ -64,12 +57,7 @@ export function getServiceClient() {
   }
   return createClient(SUPABASE_URL, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
-    global: {
-      headers: {
-        apikey: serviceKey,
-        Authorization: `Bearer ${serviceKey}`,
-      },
-    },
+    global: { headers: { apikey: serviceKey } },
   });
 }
 

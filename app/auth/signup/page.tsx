@@ -16,7 +16,10 @@ export default function SignupPage() {
 
   const handleEmail = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!supabase) return;
+    if (!supabase) {
+      setError("Supabase is not configured. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY env vars.");
+      return;
+    }
     setLoading(true);
     setError(null);
     const { error: err } = await supabase.auth.signUp({
@@ -34,7 +37,10 @@ export default function SignupPage() {
   };
 
   const handleGoogle = async () => {
-    if (!supabase) return;
+    if (!supabase) {
+      setError("Supabase is not configured. Check env vars.");
+      return;
+    }
     setLoading(true);
     await supabase.auth.signInWithOAuth({
       provider: "google",
