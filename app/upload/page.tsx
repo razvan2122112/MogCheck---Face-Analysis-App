@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLang, LangToggle } from "../context/language";
+import { useAuth } from "../context/auth";
 
 type AngleId = "front" | "left" | "right";
 type DetectionStatus = "detecting" | "mapping" | "locked";
@@ -204,6 +205,12 @@ const STATUS_CFG = {
 export default function UploadPage() {
   const router = useRouter();
   const { t, lang } = useLang();
+  const { user, authLoading, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push("/");
+  };
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -517,7 +524,23 @@ export default function UploadPage() {
     <main className="min-h-screen bg-[#0a0a0a] text-[#ededed] flex flex-col">
       <nav className="flex items-center justify-between px-6 py-4 border-b border-white/5">
         <Link href="/" className="text-xl font-bold tracking-widest gold-text">MOGRANK</Link>
-        <LangToggle className="flex items-center text-[11px] font-bold tracking-[0.08em] text-white/60 hover:text-white/90 transition-opacity" />
+        <div className="flex items-center gap-3">
+          <LangToggle className="flex items-center text-[11px] font-bold tracking-[0.08em] text-white/60 hover:text-white/90 transition-opacity" />
+          {!authLoading && user ? (
+            <>
+              <span className="text-xs text-white/40 hidden sm:block" style={{ maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {user.email}
+              </span>
+              <button onClick={handleSignOut} className="text-xs text-white/50 hover:text-white transition-colors">
+                Déconnexion
+              </button>
+            </>
+          ) : (
+            <Link href="/auth/login" className="text-xs text-white/50 hover:text-white transition-colors">
+              Se connecter
+            </Link>
+          )}
+        </div>
       </nav>
 
       {/* ── IDLE ─────────────────────────────────────────────────────────── */}

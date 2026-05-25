@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useLang } from "./context/language";
+import { useAuth } from "./context/auth";
 
 export default function Home() {
   const surfaceRef = useRef<HTMLCanvasElement>(null);
@@ -11,6 +13,13 @@ export default function Home() {
   const scoreRef   = useRef<HTMLSpanElement>(null);
   const [billing, setBilling] = useState<"month" | "year">("month");
   const { lang, setLang, t } = useLang();
+  const { user, authLoading, signOut } = useAuth();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push("/");
+  };
 
   // ── Dotted wave surface ──────────────────────────────────────────────────
   useEffect(() => {
@@ -321,8 +330,22 @@ export default function Home() {
               <span style={{ opacity: 0.3, margin: "0 3px" }}>/</span>
               <span style={{ opacity: lang === "fr" ? 1 : 0.35 }}>FR</span>
             </button>
-            <Link href="/auth/login" className="btn btn-ghost" style={{ height: 38, padding: "0 14px", fontSize: 13 }}>{t.nav.signIn}</Link>
-            <Link href="/upload" className="btn btn-gold" style={{ height: 38, padding: "0 16px", fontSize: 13 }}>{t.nav.tryFree}</Link>
+            {!authLoading && user ? (
+              <>
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {user.email}
+                </span>
+                <button onClick={handleSignOut} className="btn btn-ghost" style={{ height: 38, padding: "0 14px", fontSize: 13 }}>
+                  Déconnexion
+                </button>
+                <Link href="/upload" className="btn btn-gold" style={{ height: 38, padding: "0 16px", fontSize: 13 }}>{t.nav.tryFree}</Link>
+              </>
+            ) : (
+              <>
+                <Link href="/auth/login" className="btn btn-ghost" style={{ height: 38, padding: "0 14px", fontSize: 13 }}>{t.nav.signIn}</Link>
+                <Link href="/upload" className="btn btn-gold" style={{ height: 38, padding: "0 16px", fontSize: 13 }}>{t.nav.tryFree}</Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
