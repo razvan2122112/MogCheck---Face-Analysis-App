@@ -525,6 +525,9 @@ export default function UploadPage() {
       <nav className="flex items-center justify-between px-6 py-4 border-b border-white/5">
         <Link href="/" className="text-xl font-bold tracking-widest gold-text">MOGRANK</Link>
         <div className="flex items-center gap-3">
+          <Link href="/battle" className="text-xs font-bold text-[#5fd0bf] hover:text-[#4ac0af] transition-colors hidden sm:block">
+            Battle ⚔️
+          </Link>
           <LangToggle className="flex items-center text-[11px] font-bold tracking-[0.08em] text-white/60 hover:text-white/90 transition-opacity" />
           {!authLoading && user ? (
             <>

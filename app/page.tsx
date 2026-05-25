@@ -317,9 +317,12 @@ export default function Home() {
             <a href="#features">{t.nav.features}</a>
             <a href="#how">{t.nav.howItWorks}</a>
             <a href="#pricing">{t.nav.pricing}</a>
-            <a href="#">{t.nav.science}</a>
+            <Link href="/battle" style={{ color: "var(--teal)", fontWeight: 700 }}>Battle ⚔️</Link>
           </div>
           <div className="nav-cta">
+            <Link href="/battle" className="btn btn-ghost" style={{ height: 38, padding: "0 14px", fontSize: 13, color: "var(--teal)", fontWeight: 700 }}>
+              Battle ⚔️
+            </Link>
             <button
               onClick={() => setLang(lang === "en" ? "fr" : "en")}
               className="btn btn-ghost"
