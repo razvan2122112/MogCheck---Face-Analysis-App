@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLang, LangToggle } from "../context/language";
 import { useAuth } from "../context/auth";
+import { getBrowserClient } from "@/lib/supabase";
 
 type AngleId = "front" | "left" | "right";
 type DetectionStatus = "detecting" | "mapping" | "locked";
@@ -482,6 +483,42 @@ export default function UploadPage() {
       const analysisId = `mog_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       sessionStorage.setItem("mogrank_analysis_id", analysisId);
       sessionStorage.setItem("mogrank_results", JSON.stringify(analysisResult));
+
+      // Save analysis to Supabase when user is logged in (fire-and-forget)
+      if (user) {
+        try {
+          let thumbnail: string | null = null;
+          const img = new Image();
+          await new Promise<void>((resolve) => {
+            img.onload = () => resolve();
+            img.onerror = () => resolve();
+            img.src = photos.front;
+          });
+          if (img.width > 0) {
+            const thumb = document.createElement("canvas");
+            const scale = 80 / img.width;
+            thumb.width = 80;
+            thumb.height = Math.round(img.height * scale);
+            thumb.getContext("2d")?.drawImage(img, 0, 0, thumb.width, thumb.height);
+            thumbnail = thumb.toDataURL("image/jpeg", 0.65);
+          }
+          const supabase = getBrowserClient();
+          if (supabase) {
+            (async () => {
+              try {
+                await supabase.from("analyses").insert({
+                  user_id: user.id,
+                  session_id: analysisId,
+                  score: typeof analysisResult.overall_score === "number" ? analysisResult.overall_score : null,
+                  results: analysisResult,
+                  photo_url: thumbnail,
+                });
+              } catch { /* ignore */ }
+            })();
+          }
+        } catch { /* ignore — never block navigation */ }
+      }
+
       router.push("/results");
     } catch (err) {
       setError(err instanceof Error ? err.message : t.upload.errSomethingWrong);
@@ -528,6 +565,9 @@ export default function UploadPage() {
           <LangToggle className="flex items-center text-[11px] font-bold tracking-[0.08em] text-white/60 hover:text-white/90 transition-opacity" />
           {!authLoading && user ? (
             <>
+              <Link href="/progress" className="text-xs text-white/50 hover:text-white transition-colors hidden sm:block">
+                Ma Progression
+              </Link>
               <span className="text-xs text-white/40 hidden sm:block" style={{ maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {user.email}
               </span>

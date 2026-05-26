@@ -1,0 +1,485 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  ResponsiveContainer,
+  LineChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Line,
+} from "recharts";
+import { getBrowserClient } from "@/lib/supabase";
+import { useAuth } from "../context/auth";
+
+interface Analysis {
+  id: string;
+  score: number | null;
+  results: Record<string, unknown> | null;
+  photo_url: string | null;
+  created_at: string;
+}
+
+function fmtDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+}
+
+function fmtFull(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "2-digit" });
+}
+
+// ─── mock chart shown behind the locked overlay ───────────────────────────────
+
+function MockChart() {
+  return (
+    <svg viewBox="0 0 300 120" className="w-full h-full" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="mockGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#e99846" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="#e99846" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M0,92 L40,82 L80,87 L120,68 L160,54 L200,40 L240,28 L300,16 L300,120 L0,120Z"
+        fill="url(#mockGrad)"
+      />
+      <path
+        d="M0,92 L40,82 L80,87 L120,68 L160,54 L200,40 L240,28 L300,16"
+        stroke="#e99846"
+        strokeWidth="2.2"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {([[0,92],[80,87],[160,54],[240,28],[300,16]] as [number,number][]).map(([x, y], i) => (
+        <circle key={i} cx={x} cy={y} r="4" fill="#e99846" />
+      ))}
+      {/* Fake grid */}
+      {[30, 60, 90].map(y => (
+        <line key={y} x1="0" y1={y} x2="300" y2={y} stroke="rgba(255,255,255,0.06)" strokeDasharray="4 4" />
+      ))}
+    </svg>
+  );
+}
+
+// ─── component ───────────────────────────────────────────────────────────────
+
+export default function ProgressPage() {
+  const { user, authLoading, signOut } = useAuth();
+  const router = useRouter();
+  const [analyses, setAnalyses] = useState<Analysis[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push("/");
+  };
+
+  useEffect(() => {
+    if (!user) { setDataLoading(false); return; }
+    const supabase = getBrowserClient();
+    if (!supabase) { setDataLoading(false); return; }
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("analyses")
+          .select("id, score, results, photo_url, created_at")
+          .eq("user_id", user.id)
+          .not("score", "is", null)
+          .order("created_at", { ascending: true });
+        setAnalyses(data ?? []);
+      } catch { /* ignore */ } finally {
+        setDataLoading(false);
+      }
+    })();
+  }, [user]);
+
+  // ── shared nav ─────────────────────────────────────────────────────────────
+
+  const navEl = (
+    <nav className="flex items-center justify-between px-6 py-4 border-b border-white/5 flex-none">
+      <Link href="/" className="text-xl font-bold tracking-widest gold-text">MOGRANK</Link>
+      <div className="flex items-center gap-3">
+        <Link href="/upload" className="text-xs text-white/40 hover:text-white/70 transition-colors hidden sm:block">
+          Analyse
+        </Link>
+        {!authLoading && user ? (
+          <>
+            <span className="text-xs text-white/40 hidden sm:block" style={{ maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {user.email}
+            </span>
+            <button onClick={handleSignOut} className="text-xs text-white/50 hover:text-white transition-colors">
+              Déconnexion
+            </button>
+          </>
+        ) : (
+          <Link href="/auth/login" className="text-xs text-white/50 hover:text-white transition-colors">
+            Se connecter
+          </Link>
+        )}
+      </div>
+    </nav>
+  );
+
+  // ── loading ────────────────────────────────────────────────────────────────
+
+  if (authLoading || dataLoading) {
+    return (
+      <main className="min-h-screen bg-[#0a0a0a] text-[#ededed] flex flex-col">
+        {navEl}
+        <div className="flex-1 flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-[#e99846] border-t-transparent rounded-full animate-spin" />
+        </div>
+      </main>
+    );
+  }
+
+  // ── locked preview (not logged in) ─────────────────────────────────────────
+
+  if (!user) {
+    return (
+      <main className="min-h-screen bg-[#0a0a0a] text-[#ededed] flex flex-col">
+        {navEl}
+        <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
+          {/* Blurred chart preview */}
+          <div className="w-full max-w-sm mb-7">
+            <div className="relative rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden" style={{ height: 180 }}>
+              <div className="absolute inset-0 opacity-25">
+                <MockChart />
+              </div>
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 backdrop-blur-sm bg-black/50">
+                <span className="text-3xl">🔒</span>
+                <p className="text-xs font-semibold text-white/50">Progression verrouillée</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Blurred stat chips */}
+          <div className="flex gap-3 mb-8 w-full max-w-sm">
+            {["Score actuel", "1er score", "Jours"].map(label => (
+              <div key={label} className="flex-1 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 text-center">
+                <div className="text-[9px] font-mono text-white/25 uppercase tracking-wider mb-1">{label}</div>
+                <div className="text-2xl font-black text-white/10 blur-sm select-none">7.8</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center mb-8 max-w-xs">
+            <p className="text-xs uppercase tracking-[0.3em] text-[#e99846] mb-3 font-semibold">Progression 90 jours</p>
+            <h1 className="text-3xl font-black mb-3 leading-tight">
+              Suis ta<br /><span className="text-[#e99846]">transformation</span>
+            </h1>
+            <p className="text-white/40 text-sm leading-relaxed">
+              Crée ton compte gratuit pour tracker ta progression et valider les résultats du programme sur 90 jours.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3 w-full max-w-xs">
+            <Link
+              href="/auth/signup"
+              className="w-full py-4 rounded-full font-bold text-sm bg-[#e99846] text-[#0a0a0a] hover:bg-[#f0b060] hover:scale-[1.02] transition-all text-center shadow-lg shadow-[#e99846]/15"
+            >
+              Crée ton compte gratuit pour tracker ta progression →
+            </Link>
+            <Link
+              href="/auth/login"
+              className="w-full py-3.5 rounded-full font-bold text-sm border border-white/15 text-white/60 hover:border-white/30 hover:text-white transition-all text-center"
+            >
+              J'ai déjà un compte
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // ── empty state ────────────────────────────────────────────────────────────
+
+  if (analyses.length === 0) {
+    return (
+      <main className="min-h-screen bg-[#0a0a0a] text-[#ededed] flex flex-col">
+        {navEl}
+        <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
+          <div className="text-6xl mb-5">📈</div>
+          <h1 className="text-2xl font-black mb-3">Aucune analyse enregistrée</h1>
+          <p className="text-white/40 text-sm mb-8 max-w-xs leading-relaxed">
+            Fais ta première analyse pour commencer à tracker ta progression sur 90 jours.
+          </p>
+          <Link
+            href="/upload"
+            className="px-10 py-4 rounded-full font-bold text-sm bg-[#e99846] text-[#0a0a0a] hover:bg-[#f0b060] hover:scale-105 transition-all shadow-lg shadow-[#e99846]/15"
+          >
+            Faire ma première analyse →
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  // ── compute stats ──────────────────────────────────────────────────────────
+
+  const first = analyses[0];
+  const latest = analyses[analyses.length - 1];
+  const delta = Number((latest.score! - first.score!).toFixed(1));
+  const daysSince = Math.max(
+    0,
+    Math.floor((Date.now() - new Date(first.created_at).getTime()) / (1000 * 60 * 60 * 24))
+  );
+  const daysToNext = Math.max(
+    1,
+    7 - Math.floor((Date.now() - new Date(latest.created_at).getTime()) / (1000 * 60 * 60 * 24))
+  );
+
+  const chartData = analyses.map(a => ({
+    date: fmtDate(a.created_at),
+    score: Number(a.score!.toFixed(1)),
+  }));
+
+  const needsMore = analyses.length < 3;
+  const isImproving = !needsMore && delta >= 0.3;
+  const isStagnating = !needsMore && delta < 0.3;
+
+  // Newest-first for history display
+  const history = [...analyses].reverse();
+
+  // ── full progress view ─────────────────────────────────────────────────────
+
+  return (
+    <main className="min-h-screen bg-[#0a0a0a] text-[#ededed] flex flex-col">
+      {navEl}
+
+      <div className="flex-1 px-5 py-8 w-full max-w-xl mx-auto">
+
+        {/* ── header ─────────────────────────────────────────────────────── */}
+        <div className="mb-8">
+          <p className="text-xs uppercase tracking-[0.3em] text-[#e99846] mb-2 font-semibold">Suivi · 90 jours</p>
+          <h1 className="text-2xl sm:text-3xl font-black mb-5">Ta Progression MogRank</h1>
+
+          <div className="grid grid-cols-3 gap-3 mb-3">
+            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3 text-center">
+              <div className="text-[9px] font-mono text-white/30 uppercase tracking-wider mb-1">Score actuel</div>
+              <div className="text-2xl font-black text-[#e99846]">{latest.score!.toFixed(1)}</div>
+              <div className="text-[9px] text-white/20">/10</div>
+            </div>
+            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3 text-center">
+              <div className="text-[9px] font-mono text-white/30 uppercase tracking-wider mb-1">1er score</div>
+              <div className="text-2xl font-black text-white/50">{first.score!.toFixed(1)}</div>
+              <div className="text-[9px] text-white/20">/10</div>
+            </div>
+            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3 text-center">
+              <div className="text-[9px] font-mono text-white/30 uppercase tracking-wider mb-1">En cours</div>
+              <div className="text-2xl font-black text-white/50">{daysSince}</div>
+              <div className="text-[9px] text-white/20">jours</div>
+            </div>
+          </div>
+
+          {/* Delta pill */}
+          <div
+            className={`flex items-center gap-2 justify-center py-2.5 rounded-xl border ${
+              delta > 0
+                ? "border-[#e99846]/25 bg-[#e99846]/[0.05]"
+                : delta < 0
+                ? "border-red-500/25 bg-red-500/[0.04]"
+                : "border-white/[0.06] bg-white/[0.02]"
+            }`}
+          >
+            <span
+              className={`text-lg font-black ${
+                delta > 0 ? "text-[#e99846]" : delta < 0 ? "text-red-400" : "text-white/40"
+              }`}
+            >
+              {delta > 0 ? "+" : ""}{delta} pts
+            </span>
+            <span className="text-xs text-white/35">depuis le début</span>
+          </div>
+        </div>
+
+        {/* ── chart ──────────────────────────────────────────────────────── */}
+        <div className="mb-8">
+          <h2 className="text-xs font-bold text-white/40 uppercase tracking-[0.2em] mb-4">Score sur le temps</h2>
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4" style={{ height: 220 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: -22 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  domain={[0, 10]}
+                  ticks={[0, 2, 4, 6, 8, 10]}
+                  tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "#111111",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    borderRadius: 10,
+                    color: "#ededed",
+                    fontSize: 12,
+                    padding: "6px 10px",
+                  }}
+                  formatter={(value) => [`${Number(value).toFixed(1)} / 10`, "Score"]}
+                  labelStyle={{ color: "rgba(255,255,255,0.4)", marginBottom: 2, fontSize: 10 }}
+                  cursor={{ stroke: "rgba(255,255,255,0.08)", strokeWidth: 1 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="score"
+                  stroke="#e99846"
+                  strokeWidth={2.5}
+                  dot={{ fill: "#e99846", r: 4, strokeWidth: 0 }}
+                  activeDot={{ fill: "#f0b060", r: 6, strokeWidth: 0 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* ── motivation ─────────────────────────────────────────────────── */}
+        <div className="mb-8">
+          {needsMore && (
+            <div className="rounded-2xl border border-[#5fd0bf]/20 bg-[#5fd0bf]/[0.04] p-4 flex items-start gap-3">
+              <span className="text-xl flex-none mt-0.5">⏳</span>
+              <div>
+                <p className="text-sm font-bold text-[#5fd0bf] mb-1">Continue le programme</p>
+                <p className="text-xs text-white/40 leading-relaxed">
+                  Reviens dans {daysToNext} jour{daysToNext > 1 ? "s" : ""} pour ta prochaine analyse.
+                  Il te faut encore {3 - analyses.length} analyse{3 - analyses.length > 1 ? "s" : ""} pour voir ta courbe de progression complète.
+                </p>
+              </div>
+            </div>
+          )}
+          {isImproving && (
+            <div className="rounded-2xl border border-[#e99846]/25 bg-[#e99846]/[0.04] p-4 flex items-start gap-3">
+              <span className="text-xl flex-none mt-0.5">🚀</span>
+              <div>
+                <p className="text-sm font-bold text-[#e99846] mb-1">Tu progresses !</p>
+                <p className="text-xs text-white/40 leading-relaxed">
+                  Continue le programme — tu es sur la bonne trajectoire. Chaque analyse rapproche de ton potentiel.
+                </p>
+              </div>
+            </div>
+          )}
+          {isStagnating && (
+            <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <span className="text-xl flex-none mt-0.5">⚠️</span>
+                <div>
+                  <p className="text-sm font-bold text-white/80 mb-1">Ton programme a besoin d'ajustements →</p>
+                  <p className="text-xs text-white/40 leading-relaxed">
+                    Tes scores stagnent. Refais une analyse pour obtenir un plan d'action actualisé.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/upload"
+                className="flex-none text-[10px] font-bold text-[#e99846] hover:underline whitespace-nowrap mt-0.5"
+              >
+                Analyser →
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {/* ── history ────────────────────────────────────────────────────── */}
+        <div>
+          <h2 className="text-xs font-bold text-white/40 uppercase tracking-[0.2em] mb-4">Historique des analyses</h2>
+          <div className="flex flex-col gap-3">
+            {history.map((analysis, idx) => {
+              const prev = history[idx + 1];
+              const scoreDelta =
+                prev && typeof prev.score === "number"
+                  ? Number((analysis.score! - prev.score).toFixed(1))
+                  : null;
+              const isFirstAnalysis = idx === history.length - 1;
+
+              return (
+                <div
+                  key={analysis.id}
+                  className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3"
+                >
+                  {/* Thumbnail */}
+                  <div className="flex-none w-11 h-14 rounded-xl overflow-hidden border border-white/10 bg-white/[0.04]">
+                    {analysis.photo_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={analysis.photo_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <span className="text-white/15 text-base">👤</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="text-[10px] font-mono text-white/30 uppercase tracking-wider">
+                        {fmtFull(analysis.created_at)}
+                      </span>
+                      {isFirstAnalysis && (
+                        <span className="px-1.5 py-0.5 rounded bg-[#5fd0bf]/15 text-[#5fd0bf] text-[8px] font-bold uppercase tracking-wide">
+                          Début
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-xl font-black text-[#e99846]">{analysis.score!.toFixed(1)}</span>
+                      <span className="text-[10px] text-white/25">/10</span>
+                    </div>
+                    {analysis.results &&
+                      typeof (analysis.results as Record<string, unknown>).looksmax_rating === "string" && (
+                        <p className="text-[9px] text-white/25 mt-0.5 truncate">
+                          {(analysis.results as Record<string, unknown>).looksmax_rating as string}
+                        </p>
+                      )}
+                  </div>
+
+                  {/* Score delta */}
+                  <div className="flex-none w-14 text-right">
+                    {scoreDelta !== null ? (
+                      <div
+                        className={`flex items-center justify-end gap-0.5 ${
+                          scoreDelta > 0
+                            ? "text-green-400"
+                            : scoreDelta < 0
+                            ? "text-red-400"
+                            : "text-white/25"
+                        }`}
+                      >
+                        <span className="text-sm font-bold">
+                          {scoreDelta > 0 ? "+" : ""}{scoreDelta}
+                        </span>
+                        <span className="text-base">
+                          {scoreDelta > 0 ? "✅" : scoreDelta < 0 ? "⚠️" : "—"}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-white/20 text-xs">—</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-6 text-center">
+            <Link
+              href="/upload"
+              className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-sm font-bold border border-[#e99846]/30 text-[#e99846] hover:bg-[#e99846]/8 transition-all"
+            >
+              + Nouvelle analyse
+            </Link>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
