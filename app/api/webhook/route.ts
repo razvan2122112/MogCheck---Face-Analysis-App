@@ -25,16 +25,33 @@ export async function POST(req: NextRequest) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
-    const userId      = session.client_reference_id ?? null;
-    const plan        = (session.metadata?.plan ?? "once") as "once" | "monthly";
-    const analysisId  = session.metadata?.analysis_id ?? null;
-    const amount      = session.amount_total ?? 0;
+    const userId       = session.client_reference_id ?? null;
+    const customerEmail = (session.customer_details?.email ?? session.customer_email) ?? null;
+    const plan         = (session.metadata?.plan ?? "once") as "once" | "monthly";
+    const analysisId   = session.metadata?.analysis_id ?? null;
+    const amount       = session.amount_total ?? 0;
+
+    console.log("[webhook] checkout.session.completed:", {
+      sessionId: session.id, userId, customerEmail, plan, analysisId,
+    });
 
     try {
       const supabase = getServiceClient();
 
+      // Resolve user ID: prefer client_reference_id, fall back to email lookup
+      let resolvedUserId = userId;
+      if (!resolvedUserId && customerEmail) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("email", customerEmail)
+          .maybeSingle();
+        resolvedUserId = prof?.id ?? null;
+        console.log("[webhook] email lookup:", customerEmail, "→ resolvedUserId:", resolvedUserId);
+      }
+
       await supabase.from("purchases").upsert({
-        user_id:           userId,
+        user_id:           resolvedUserId,
         stripe_session_id: session.id,
         analysis_id:       analysisId,
         plan,
@@ -42,18 +59,22 @@ export async function POST(req: NextRequest) {
         used:              false,
       }, { onConflict: "stripe_session_id" });
 
-      if (userId) {
+      if (resolvedUserId) {
         if (plan === "monthly") {
-          await supabase.from("profiles").update({
+          const { error } = await supabase.from("profiles").update({
             plan:               "monthly",
             analyses_remaining: 999,
-          }).eq("id", userId);
+          }).eq("id", resolvedUserId);
+          console.log("[webhook] profile updated → monthly, userId:", resolvedUserId, error ? "error:" + error.message : "ok");
         } else {
-          await supabase.from("profiles").update({
+          const { error } = await supabase.from("profiles").update({
             plan:               "once",
             analyses_remaining: 1,
-          }).eq("id", userId);
+          }).eq("id", resolvedUserId);
+          console.log("[webhook] profile updated → once, userId:", resolvedUserId, error ? "error:" + error.message : "ok");
         }
+      } else {
+        console.warn("[webhook] no user found for email:", customerEmail, "— profile not updated");
       }
     } catch (err) {
       console.error("Webhook DB error (tables may not be set up yet):", err);
