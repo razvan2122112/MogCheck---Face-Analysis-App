@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLang, LangToggle } from "../context/language";
@@ -487,91 +487,6 @@ function LockedMetricsPreview({
   );
 }
 
-// ── Unlocked Before / After Slider (paid view) ───────────────────────────────
-
-function UnlockedBeforeAfterSlider({ photoUrl }: { photoUrl: string }) {
-  const [split, setSplit] = useState(50);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const draggingRef  = useRef(false);
-
-  const calcSplit = useCallback((clientX: number) => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    setSplit(Math.max(5, Math.min(95, ((clientX - rect.left) / rect.width) * 100)));
-  }, []);
-
-  useEffect(() => {
-    const onUp   = () => { draggingRef.current = false; };
-    const onMove = (e: MouseEvent) => { if (draggingRef.current) calcSplit(e.clientX); };
-    window.addEventListener("mouseup", onUp);
-    window.addEventListener("mousemove", onMove);
-    return () => {
-      window.removeEventListener("mouseup", onUp);
-      window.removeEventListener("mousemove", onMove);
-    };
-  }, [calcSplit]);
-
-  return (
-    <div
-      ref={containerRef}
-      className="relative w-full overflow-hidden select-none cursor-ew-resize rounded-2xl"
-      style={{ aspectRatio: "4/5" }}
-      onMouseDown={(e) => { draggingRef.current = true; calcSplit(e.clientX); }}
-      onTouchStart={(e) => { draggingRef.current = true; calcSplit(e.touches[0].clientX); }}
-      onTouchMove={(e) => { if (draggingRef.current) calcSplit(e.touches[0].clientX); }}
-      onTouchEnd={() => { draggingRef.current = false; }}
-    >
-      {/* APRÈS — enhanced photo as base layer */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={photoUrl}
-        alt="Après"
-        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-        style={{ filter: "brightness(1.08) contrast(1.15) saturate(1.1)" }}
-        draggable={false}
-      />
-
-      {/* AVANT — original photo clipped to left side */}
-      <div className="absolute inset-0" style={{ clipPath: `inset(0 ${100 - split}% 0 0)` }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={photoUrl}
-          alt="Avant"
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-          draggable={false}
-        />
-      </div>
-
-      {/* Divider line + circular drag handle */}
-      <div
-        className="absolute top-0 bottom-0 -translate-x-1/2 pointer-events-none z-10"
-        style={{ left: `${split}%` }}
-      >
-        <div className="w-[2px] h-full bg-white/90 shadow-[0_0_8px_rgba(255,255,255,0.5)]" />
-        <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-9 h-9 rounded-full bg-white shadow-xl flex items-center justify-center">
-          <svg className="w-4 h-4 text-[#0a0a0a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l-3 3 3 3M16 9l3 3-3 3" />
-          </svg>
-        </div>
-      </div>
-
-      {/* ACTUELLEMENT label */}
-      <div className="absolute bottom-3 left-3 pointer-events-none z-10">
-        <span className="px-2 py-1 rounded-lg bg-black/65 backdrop-blur-sm text-white text-[9px] font-bold tracking-[0.15em]">
-          ACTUELLEMENT
-        </span>
-      </div>
-
-      {/* APRÈS 90J label */}
-      <div className="absolute bottom-3 right-3 pointer-events-none z-10">
-        <span className="px-2 py-1 rounded-lg bg-[#e99846]/90 backdrop-blur-sm text-[#0a0a0a] text-[9px] font-bold tracking-[0.15em]">
-          APRÈS 90J
-        </span>
-      </div>
-    </div>
-  );
-}
-
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function ResultsPage() {
@@ -939,16 +854,6 @@ export default function ResultsPage() {
               </p>
             )}
           </div>
-
-          {/* Before / After slider — unlocked */}
-          {photoUrl && (
-            <div className="mb-6 fade-up" style={{ animationDelay: "200ms", animationFillMode: "both" }}>
-              <p className="text-xs uppercase tracking-[0.2em] text-[#e99846]/70 font-semibold mb-3 text-center">
-                Ta transformation potentielle — glisse pour comparer
-              </p>
-              <UnlockedBeforeAfterSlider photoUrl={photoUrl} />
-            </div>
-          )}
 
           {/* Score breakdown */}
           <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 mb-6">

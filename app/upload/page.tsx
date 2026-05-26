@@ -208,15 +208,6 @@ export default function UploadPage() {
   const { t, lang } = useLang();
   const { user, authLoading, signOut } = useAuth();
 
-  // Redirect unauthenticated users to login
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.replace(
-        `/auth/login?redirect=${encodeURIComponent("/upload")}&msg=${encodeURIComponent("Crée ton compte gratuit pour analyser ton visage")}`
-      );
-    }
-  }, [authLoading, user, router]);
-
   const handleSignOut = async () => {
     await signOut();
     router.push("/");
@@ -478,14 +469,6 @@ export default function UploadPage() {
     if (!photos.front || !photos.left || !photos.right) return;
     setLoading(true);
     setError(null);
-
-    // Generate a fresh analysisId before the API call so it's stable for the entire session
-    const analysisId = `mog_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    sessionStorage.setItem("mogrank_analysis_id", analysisId);
-    // Clear stale results from any previous analysis
-    sessionStorage.removeItem("mogrank_results");
-    sessionStorage.removeItem("mogrank_photo");
-
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
@@ -497,6 +480,8 @@ export default function UploadPage() {
         throw new Error(msg ?? t.upload.errAnalysisFailed);
       }
       const analysisResult = await res.json();
+      const analysisId = `mog_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      sessionStorage.setItem("mogrank_analysis_id", analysisId);
       sessionStorage.setItem("mogrank_results", JSON.stringify(analysisResult));
 
       // Save analysis to Supabase when user is logged in (fire-and-forget)
@@ -540,16 +525,6 @@ export default function UploadPage() {
       setLoading(false);
     }
   };
-
-  // ── auth guard ────────────────────────────────────────────────────────────
-
-  if (authLoading || !user) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#e99846] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
 
   // ── derived render values ──────────────────────────────────────────────────
 
