@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getBrowserClient } from "@/lib/supabase";
@@ -10,8 +10,18 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
+  const [redirectTo, setRedirectTo] = useState("/upload");
+  const [customMsg, setCustomMsg]   = useState<string | null>(null);
   const router = useRouter();
   const supabase = getBrowserClient();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const r = params.get("redirect");
+    const m = params.get("msg");
+    if (r) setRedirectTo(r);
+    if (m) setCustomMsg(m);
+  }, []);
 
   const handleEmail = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +36,7 @@ export default function LoginPage() {
       setError(err.message);
       setLoading(false);
     } else {
-      router.push("/upload");
+      router.push(redirectTo);
     }
   };
 
@@ -36,7 +46,10 @@ export default function LoginPage() {
       return;
     }
     setLoading(true);
-    await supabase.auth.signInWithOAuth({ provider: "google" });
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}${redirectTo}` },
+    });
   };
 
   return (
@@ -50,7 +63,11 @@ export default function LoginPage() {
           <div className="text-center mb-8">
             <p className="text-xs uppercase tracking-[0.3em] text-[#e99846] mb-2 font-semibold">Bienvenue</p>
             <h1 className="text-3xl font-black">Connexion</h1>
-            <p className="text-sm text-white/40 mt-2">Accède à ton analyse complète</p>
+            {customMsg ? (
+              <p className="text-sm text-[#e99846]/80 mt-2 font-medium">{customMsg}</p>
+            ) : (
+              <p className="text-sm text-white/40 mt-2">Accède à ton analyse complète</p>
+            )}
           </div>
 
           {/* Google OAuth */}
@@ -105,7 +122,10 @@ export default function LoginPage() {
 
           <p className="text-center text-xs text-white/30 mt-6">
             Pas encore de compte ?{" "}
-            <Link href="/auth/signup" className="text-[#e99846] hover:text-[#f0b060] transition-colors">
+            <Link
+              href={`/auth/signup?redirect=${encodeURIComponent(redirectTo)}${customMsg ? `&msg=${encodeURIComponent(customMsg)}` : ""}`}
+              className="text-[#e99846] hover:text-[#f0b060] transition-colors"
+            >
               Créer un compte
             </Link>
           </p>
