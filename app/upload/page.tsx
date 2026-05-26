@@ -210,7 +210,7 @@ export default function UploadPage() {
 
   useEffect(() => {
     if (!authLoading && !user) {
-      router.replace("/auth/login");
+      router.replace("/auth/login?redirect=/upload");
     }
   }, [authLoading, user, router]);
 

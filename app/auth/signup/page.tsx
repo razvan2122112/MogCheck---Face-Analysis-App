@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getBrowserClient } from "@/lib/supabase";
@@ -11,8 +11,14 @@ export default function SignupPage() {
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
   const [sent, setSent]         = useState(false);
+  const [redirect, setRedirect] = useState("/upload");
   const router = useRouter();
   const supabase = getBrowserClient();
+
+  useEffect(() => {
+    const r = new URLSearchParams(window.location.search).get("redirect");
+    if (r) setRedirect(r);
+  }, []);
 
   const handleEmail = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +44,10 @@ export default function SignupPage() {
       return;
     }
     setLoading(true);
-    await supabase.auth.signInWithOAuth({ provider: "google" });
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}${redirect}` },
+    });
   };
 
   if (sent) {
