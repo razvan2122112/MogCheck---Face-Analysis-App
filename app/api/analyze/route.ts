@@ -70,6 +70,14 @@ Be precise and honest. Use decimal values (e.g., 7.3, 8.1). A weak jaw is 3-4, n
 
 For perfect_version: make it compelling and specific. Reference the actual face features you see. Example format: "With consistent mewing and a targeted jawline program, your jaw definition could improve by 25–30%, your skin texture reach 8.5/10 with the right retinoid routine, and your canthal tilt lift by 1–2°, pushing your overall score from [current] to [potential] within 90 days."
 
+For the improvement_plan, be VERY specific:
+- skincare: recommend exact products and routines based on detected skin issues (acne, oiliness, dryness)
+- exercises: recommend specific exercises based on detected weak areas (jaw exercises if weak jawline, neck exercises if poor posture detected)
+- grooming: recommend specific haircut styles that complement the detected face shape
+- lifestyle: recommend specific changes based on detected issues (sleep position for jaw asymmetry, diet for skin quality)
+
+Never give generic advice. Every recommendation must directly address a specific detected flaw.
+
 CRITICAL: Return ONLY valid JSON. No text before or after. No markdown. No backticks. Just the raw JSON object.`;
 
 const FRENCH_SUFFIX = `
