@@ -115,7 +115,7 @@ recommended_products — list 5-8 products that directly address the detected fl
 - Do not recommend any product that does not address at least one detected flaw.
 - Prioritize products by impact — most critical flaw first.
 
-CRITICAL: Return ONLY valid JSON. No text before or after. No markdown. No backticks. Just the raw JSON object.`;
+CRITICAL: You MUST respond with ONLY a valid JSON object. No markdown, no \`\`\`json, no explanation before or after. Start with { and end with }. Any text outside the JSON object will break the parser.`;
 
 const FRENCH_SUFFIX = `
 
@@ -201,7 +201,7 @@ export async function POST(req: NextRequest) {
 
     const response = await client.messages.create({
       model: "claude-sonnet-4-5",
-      max_tokens: 4096,
+      max_tokens: 8000,
       system: systemPrompt,
       messages: [
         {
@@ -212,12 +212,13 @@ export async function POST(req: NextRequest) {
     });
 
     const raw = response.content[0].type === "text" ? response.content[0].text : "";
+    console.log("/api/analyze: raw response length:", raw.length, "| first 200 chars:", raw.slice(0, 200));
 
-    // Find the outermost { } block robustly (handles markdown wrapping or leading text)
+    // Extract the outermost { } block (handles markdown wrapping or leading/trailing text)
     const firstBrace = raw.indexOf("{");
     const lastBrace  = raw.lastIndexOf("}");
     if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
-      console.error("/api/analyze: no JSON object found in response", raw.slice(0, 200));
+      console.error("/api/analyze: no JSON object found in response | full raw:", raw.slice(0, 500));
       return NextResponse.json({ error: "Failed to parse AI response." }, { status: 500 });
     }
     const jsonStr = raw.slice(firstBrace, lastBrace + 1);
@@ -226,7 +227,18 @@ export async function POST(req: NextRequest) {
     try {
       result = JSON.parse(jsonStr);
     } catch (parseErr) {
-      console.error("/api/analyze: JSON.parse failed", parseErr, "raw slice:", jsonStr.slice(0, 300));
+      console.error("/api/analyze: JSON.parse failed:", parseErr, "| raw slice (0-500):", jsonStr.slice(0, 500));
+      // Fallback: try to return a partial result without the large new fields
+      try {
+        const fallbackMatch = jsonStr.match(/^\{[\s\S]*?"summary"\s*:\s*"[^"]*"/);
+        if (fallbackMatch) {
+          const partial = JSON.parse(fallbackMatch[0] + ',"daily_program":null,"recommended_products":null}');
+          console.warn("/api/analyze: returning partial fallback result");
+          return NextResponse.json(partial);
+        }
+      } catch {
+        // fallback also failed — fall through to error
+      }
       return NextResponse.json({ error: "AI returned malformed JSON. Please try again." }, { status: 500 });
     }
 
