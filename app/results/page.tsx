@@ -555,6 +555,65 @@ function UsedAnalysisModal({
   );
 }
 
+function MonthlyOnlyModal({
+  onClose,
+  onPay,
+  loading,
+  error,
+}: {
+  onClose: () => void;
+  onPay: (plan: "once" | "monthly") => void;
+  loading: boolean;
+  error: string | null;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6"
+      style={{ background: "rgba(0,0,0,0.88)", backdropFilter: "blur(14px)" }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl bg-[#111] border border-white/10 p-6 pb-8 sm:pb-6">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-black text-white">Analyses illimitées</h2>
+            <p className="text-sm text-white/40 mt-1">
+              Passe au plan mensuel pour analyser autant de photos que tu veux
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:border-white/30 transition-colors text-sm flex-shrink-0"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="mt-5">
+          <button
+            onClick={() => onPay("monthly")}
+            disabled={loading}
+            className="w-full py-3.5 rounded-full font-bold text-sm bg-[#e99846] text-[#0a0a0a] hover:bg-[#f0b060] hover:scale-[1.02] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:scale-100 flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                <span>Redirecting…</span>
+              </>
+            ) : (
+              "Plan mensuel $9.99/mois"
+            )}
+          </button>
+        </div>
+
+        {error && <p className="mt-3 text-center text-xs text-red-400">{error}</p>}
+        <p className="mt-3 text-center text-[10px] text-white/20">
+          Secured by Stripe · Cancel anytime
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function ResultsPage() {
@@ -573,6 +632,7 @@ export default function ResultsPage() {
   const [payError, setPayError]         = useState<string | null>(null);
   const [limitReached, setLimitReached] = useState(false);
   const [showUsedModal, setShowUsedModal] = useState(false);
+  const [showMonthlyModal, setShowMonthlyModal] = useState(false);
 
   // Set true by Step 1 (Stripe redirect) so Step 2 never overrides isPro→false
   // before the webhook has updated the profile.
@@ -861,6 +921,14 @@ export default function ResultsPage() {
     return (
       <main className="min-h-screen bg-[#0a0a0a] text-[#ededed] flex flex-col">
         {Nav}
+        {showMonthlyModal && (
+          <MonthlyOnlyModal
+            onClose={() => { setShowMonthlyModal(false); setPayError(null); }}
+            onPay={startCheckout}
+            loading={checkoutLoading}
+            error={payError}
+          />
+        )}
         <div className="flex-1 w-full max-w-2xl mx-auto px-6 py-12">
           {/* Header */}
           <div className="text-center mb-10 fade-up">
@@ -993,12 +1061,21 @@ export default function ResultsPage() {
 
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-3">
-            <Link
-              href="/upload"
-              className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-full font-semibold text-sm bg-[#e99846] text-[#0a0a0a] hover:bg-[#f0b060] transition-all hover:scale-105"
-            >
-              {t.results.analyzeAnother}
-            </Link>
+            {profile?.plan === "monthly" ? (
+              <Link
+                href="/upload"
+                className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-full font-semibold text-sm bg-[#e99846] text-[#0a0a0a] hover:bg-[#f0b060] transition-all hover:scale-105"
+              >
+                {t.results.analyzeAnother}
+              </Link>
+            ) : (
+              <button
+                onClick={() => setShowMonthlyModal(true)}
+                className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 rounded-full font-semibold text-sm border border-[#e99846]/60 text-[#e99846] bg-[#0a0a0a] hover:bg-[#e99846]/10 transition-all"
+              >
+                🔒 Analyses illimitées — Plan $9.99/mois
+              </button>
+            )}
             <button
               onClick={() => {
                 const text = `${t.results.copyText}\nOverall: ${results.overall_score.toFixed(1)}/10${results.looksmax_rating ? ` (${results.looksmax_rating})` : ""}\n${t.results.metrics.facialSymmetry}: ${results.symmetry_score.toFixed(1)}\n${t.results.metrics.jawlineDefinition}: ${results.jawline_score.toFixed(1)}\n${t.results.metrics.canthalTilt}: ${results.canthal_tilt.toFixed(1)}\n${t.results.metrics.midfaceRatio}: ${results.midface_ratio.toFixed(1)}`;
