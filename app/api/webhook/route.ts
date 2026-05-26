@@ -45,17 +45,13 @@ export async function POST(req: NextRequest) {
       if (userId) {
         if (plan === "monthly") {
           await supabase.from("profiles").update({
-            plan:           "monthly",
-            analyses_limit: 9999,
+            plan:               "monthly",
+            analyses_remaining: 999,
           }).eq("id", userId);
         } else {
-          const { data: prof } = await supabase
-            .from("profiles").select("plan, analyses_limit").eq("id", userId).single();
-          const currentPlan  = (prof?.plan ?? "free") as string;
-          const currentLimit = (prof?.analyses_limit ?? 0) as number;
           await supabase.from("profiles").update({
-            plan:           currentPlan === "monthly" ? "monthly" : "once",
-            analyses_limit: currentLimit + 1,
+            plan:               "once",
+            analyses_remaining: 1,
           }).eq("id", userId);
         }
       }

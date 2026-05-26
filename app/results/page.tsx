@@ -505,11 +505,13 @@ export default function ResultsPage() {
   const [payError, setPayError]         = useState<string | null>(null);
   const [limitReached, setLimitReached] = useState(false);
 
-  // Once Stripe verifies payment, this ref prevents Step 2 from overriding isPro→false
-  // when the profile hasn't been updated by the webhook yet.
-  const stripeVerifiedRef   = useRef(false);
+  // Set true by Step 1 (Stripe redirect) so Step 2 never overrides isPro→false
+  // before the webhook has updated the profile.
+  const stripeVerifiedRef = useRef(false);
   // Holds the Stripe session ID so Step 4 can mark the purchase as used.
-  const stripeSessionIdRef  = useRef("");
+  const stripeSessionIdRef = useRef("");
+  // Prevents Step 2 from calling verify-payment (and decrementing analyses_remaining) more than once.
+  const consumedRef = useRef(false);
 
   // ── Step 1: load analysis data from sessionStorage (or pending snapshot) ──
   useEffect(() => {
@@ -598,68 +600,28 @@ export default function ResultsPage() {
     }
   }, [router, refreshProfile]);
 
-  // ── Step 2: determine isPro from Supabase profile (runs when profile loads) ─
+  // ── Step 2: check analyses_remaining server-side (runs once per session) ──
   useEffect(() => {
     if (authLoading || !loaded) return;
 
-    console.log("[results] Step2 — stripeVerifiedRef:", stripeVerifiedRef.current, "user:", !!user, "profile.plan:", profile?.plan ?? "(no profile)");
-
     if (!user) {
-      if (!stripeVerifiedRef.current) {
-        setIsPro(false);
-        console.log("[results] Step2 — no user, isPro→false");
-      } else {
-        console.log("[results] Step2 — no user but stripeVerified, skipping setIsPro(false)");
-      }
+      if (!stripeVerifiedRef.current) setIsPro(false);
       return;
     }
 
-    if (!profile) return; // profile still loading
+    if (consumedRef.current) return;
+    consumedRef.current = true;
 
-    const aid = sessionStorage.getItem("mogrank_analysis_id");
-    console.log("[results] Step2 — aid:", aid, "plan:", profile.plan);
-
-    if (profile.plan === "monthly") {
-      setIsPro(true);
-      setLimitReached(false);
-      console.log("[results] Step2 — monthly plan → isPro=true");
-      return;
-    }
-
-    if (profile.plan === "once") {
-      (async () => {
-        try {
-          const { data } = await supabase!.from("purchases")
-            .select("id")
-            .eq("user_id", user.id)
-            .eq("analysis_id", aid ?? "")
-            .maybeSingle();
-          console.log("[results] Step2 — once plan, purchases lookup:", { found: !!data, aid });
-          if (!stripeVerifiedRef.current) {
-            setIsPro(!!data);
-            console.log("[results] Step2 — once plan → isPro:", !!data);
-          } else {
-            console.log("[results] Step2 — once plan but stripeVerified, skipping setIsPro(", !!data, ")");
-          }
-          setLimitReached(profile.analyses_used >= profile.analyses_limit);
-        } catch {
-          if (!stripeVerifiedRef.current) {
-            setIsPro(false);
-            console.log("[results] Step2 — once plan purchase lookup failed → isPro=false");
-          }
-        }
-      })();
-      return;
-    }
-
-    // Free plan: not pro
-    if (!stripeVerifiedRef.current) {
-      setIsPro(false);
-      console.log("[results] Step2 — free plan → isPro=false");
-    } else {
-      console.log("[results] Step2 — free plan but stripeVerified, skipping setIsPro(false)");
-    }
-  }, [user, profile, authLoading, loaded, supabase]);
+    fetch("/api/verify-payment")
+      .then((r) => r.json())
+      .then(({ paid }: { paid: boolean }) => {
+        if (!stripeVerifiedRef.current) setIsPro(paid);
+        setLimitReached(!paid);
+      })
+      .catch(() => {
+        if (!stripeVerifiedRef.current) setIsPro(false);
+      });
+  }, [user, authLoading, loaded]);
 
   // ── Step 3: save analysis to Supabase when isPro unlocked ─────────────────
   useEffect(() => {

@@ -8,9 +8,10 @@ create table if not exists public.profiles (
   id               uuid primary key references auth.users on delete cascade,
   email            text,
   created_at       timestamptz default now(),
-  plan             text not null default 'free',   -- free | once | monthly
-  analyses_limit   int  not null default 1,
-  analyses_used    int  not null default 0
+  plan                text not null default 'free',   -- free | once | monthly
+  analyses_limit      int  not null default 1,
+  analyses_used       int  not null default 0,
+  analyses_remaining  int  not null default 0       -- decremented on each paid results view
 );
 alter table public.profiles enable row level security;
 
@@ -71,6 +72,7 @@ create table if not exists public.purchases (
 );
 -- Migration for existing deployments:
 -- ALTER TABLE public.purchases ADD COLUMN IF NOT EXISTS used boolean not null default false;
+-- ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS analyses_remaining int not null default 0;
 alter table public.purchases enable row level security;
 
 create policy "Users can read own purchases"
