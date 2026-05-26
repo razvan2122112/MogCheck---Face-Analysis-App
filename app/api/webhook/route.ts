@@ -14,9 +14,10 @@ export async function POST(req: NextRequest) {
   const body = await req.text();
   const sig  = req.headers.get("stripe-signature") ?? "";
 
+  const stripe = new Stripe(secretKey);
+
   let event: Stripe.Event;
   try {
-    const stripe = new Stripe(secretKey);
     event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
   } catch (err) {
     console.error("Webhook signature verification failed:", err);
@@ -25,11 +26,31 @@ export async function POST(req: NextRequest) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
-    const userId       = session.client_reference_id ?? null;
+    const userId        = session.client_reference_id ?? null;
     const customerEmail = (session.customer_details?.email ?? session.customer_email) ?? null;
-    const plan         = (session.metadata?.plan ?? "once") as "once" | "monthly";
-    const analysisId   = session.metadata?.analysis_id ?? null;
-    const amount       = session.amount_total ?? 0;
+    const analysisId    = session.metadata?.analysis_id ?? null;
+    const amount        = session.amount_total ?? 0;
+
+    // Determine plan from price_id (reliable) with metadata fallback
+    let plan: "once" | "monthly" = (session.metadata?.plan ?? "once") as "once" | "monthly";
+    try {
+      const priceOnce    = process.env.STRIPE_PRICE_ONCE;
+      const priceMonthly = process.env.STRIPE_PRICE_MONTHLY;
+      if (priceOnce || priceMonthly) {
+        const full = await stripe.checkout.sessions.retrieve(session.id, {
+          expand: ["line_items"],
+        });
+        const priceId = full.line_items?.data[0]?.price?.id ?? null;
+        console.log("[webhook] price_id from line_items:", priceId, "once:", priceOnce, "monthly:", priceMonthly);
+        if (priceId && priceId === priceOnce) {
+          plan = "once";
+        } else if (priceId && priceId === priceMonthly) {
+          plan = "monthly";
+        }
+      }
+    } catch (err) {
+      console.warn("[webhook] could not expand line_items, using metadata.plan:", plan, err);
+    }
 
     console.log("[webhook] checkout.session.completed:", {
       sessionId: session.id, userId, customerEmail, plan, analysisId,
