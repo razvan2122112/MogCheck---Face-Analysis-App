@@ -507,7 +507,9 @@ export default function ResultsPage() {
 
   // Once Stripe verifies payment, this ref prevents Step 2 from overriding isPro→false
   // when the profile hasn't been updated by the webhook yet.
-  const stripeVerifiedRef = useRef(false);
+  const stripeVerifiedRef   = useRef(false);
+  // Holds the Stripe session ID so Step 4 can mark the purchase as used.
+  const stripeSessionIdRef  = useRef("");
 
   // ── Step 1: load analysis data from sessionStorage (or pending snapshot) ──
   useEffect(() => {
@@ -568,6 +570,7 @@ export default function ResultsPage() {
 
     // Stripe redirect: verify payment server-side
     if (stripeSessionId) {
+      stripeSessionIdRef.current = stripeSessionId; // stored for Step 4 mark-used
       setVerifying(true);
       console.log("[results] calling /api/verify-payment with session_id:", stripeSessionId);
       fetch(`/api/verify-payment?session_id=${encodeURIComponent(stripeSessionId)}`)
@@ -675,6 +678,18 @@ export default function ResultsPage() {
       } catch {}
     })();
   }, [isPro, user, results, supabase, refreshProfile]);
+
+  // ── Step 4: mark the Stripe purchase as used once paid results are shown ────
+  useEffect(() => {
+    const sid = stripeSessionIdRef.current;
+    if (!isPro || !sid || !user) return;
+    stripeSessionIdRef.current = ""; // clear so this fires only once
+    fetch("/api/mark-used", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ stripe_session_id: sid }),
+    }).catch(() => {});
+  }, [isPro, user]);
 
   const startCheckout = async (plan: "once" | "monthly") => {
     if (!user) {

@@ -25,33 +25,42 @@ export async function GET(req: NextRequest) {
       id:             session.id,
       status:         session.status,
       payment_status: session.payment_status,
-      customer_email: session.customer_email,
       metadata:       session.metadata,
-      amount_total:   session.amount_total,
     });
 
     const paidByStripe =
       session.payment_status === "paid" || session.status === "complete";
 
-    // Belt-and-suspenders: also check purchases table in Supabase
-    let paidBySupabase = false;
+    // Check purchases table to enforce the used flag
     try {
       const db = getServiceClient();
-      const { data, error } = await db
+      const { data: purchase, error } = await db
         .from("purchases")
-        .select("id, plan, analysis_id")
+        .select("id, plan, used")
         .eq("stripe_session_id", sessionId)
         .maybeSingle();
-      console.log("[verify-payment] Supabase purchases lookup:", { data, error: error?.message });
-      paidBySupabase = !!data;
+
+      console.log("[verify-payment] purchases lookup:", { purchase, error: error?.message });
+
+      if (purchase) {
+        if (purchase.plan === "once") {
+          // One-time payment: deny if already consumed
+          const paid = !purchase.used;
+          console.log("[verify-payment] once plan — used:", purchase.used, "→ paid:", paid);
+          return NextResponse.json({ paid });
+        }
+        // monthly plan: always valid while subscription active
+        console.log("[verify-payment] monthly plan → paid: true");
+        return NextResponse.json({ paid: true });
+      }
+
+      // Purchase row not yet written (webhook pending) — trust Stripe
+      console.log("[verify-payment] no purchase row yet, trusting Stripe:", paidByStripe);
+      return NextResponse.json({ paid: paidByStripe });
     } catch (dbErr) {
-      console.warn("[verify-payment] Supabase lookup failed (non-fatal):", dbErr);
+      console.warn("[verify-payment] Supabase lookup failed — falling back to Stripe:", dbErr);
+      return NextResponse.json({ paid: paidByStripe });
     }
-
-    const paid = paidByStripe || paidBySupabase;
-    console.log("[verify-payment] final result:", { paid, paidByStripe, paidBySupabase });
-
-    return NextResponse.json({ paid });
   } catch (err) {
     console.error("[verify-payment] error:", err);
     return NextResponse.json({ paid: false, reason: "error" });

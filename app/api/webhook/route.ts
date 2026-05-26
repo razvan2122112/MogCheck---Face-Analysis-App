@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
         analysis_id:       analysisId,
         plan,
         amount,
+        used:              false,
       }, { onConflict: "stripe_session_id" });
 
       if (userId) {

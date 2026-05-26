@@ -66,8 +66,11 @@ create table if not exists public.purchases (
   analysis_id        text,           -- links payment to specific analysis
   plan               text not null,  -- once | monthly
   amount             int  default 0, -- cents
+  used               boolean not null default false, -- true once the paid results have been viewed
   created_at         timestamptz default now()
 );
+-- Migration for existing deployments:
+-- ALTER TABLE public.purchases ADD COLUMN IF NOT EXISTS used boolean not null default false;
 alter table public.purchases enable row level security;
 
 create policy "Users can read own purchases"
