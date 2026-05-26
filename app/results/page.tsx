@@ -21,6 +21,28 @@ interface ImprovementPlan {
   grooming: string[];
 }
 
+interface DayProgram {
+  day: number;
+  morning: string[];
+  evening: string[];
+  exercise: string;
+}
+
+interface DailyProgram {
+  week1: DayProgram[];
+  week2: DayProgram[];
+  week3: DayProgram[];
+  week4: DayProgram[];
+}
+
+interface RecommendedProduct {
+  product: string;
+  brand: string;
+  reason: string;
+  usage: string;
+  amazon_search: string;
+}
+
 interface AnalysisResult {
   symmetry_score: number;
   jawline_score: number;
@@ -36,6 +58,8 @@ interface AnalysisResult {
   improvements: string[];
   improvement_plan?: ImprovementPlan;
   summary?: string;
+  daily_program?: DailyProgram | null;
+  recommended_products?: RecommendedProduct[] | null;
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -268,6 +292,137 @@ function tierFromScore(score: number): string {
   if (score >= 3.5) return "Below Average";
   if (score >= 2.5) return "Incel Tier";
   return "Subhuman";
+}
+
+// ── Daily Program Section ─────────────────────────────────────────────────────
+
+function DailyProgramSection({ program }: { program: DailyProgram }) {
+  const [openWeek, setOpenWeek] = useState<number>(1);
+
+  const weeks: { key: keyof DailyProgram; label: string }[] = [
+    { key: "week1", label: "Semaine 1" },
+    { key: "week2", label: "Semaine 2" },
+    { key: "week3", label: "Semaine 3" },
+    { key: "week4", label: "Semaine 4" },
+  ];
+
+  return (
+    <div className="mb-8 fade-up" style={{ animationDelay: "1200ms", animationFillMode: "both" }}>
+      <div className="mb-5">
+        <p className="text-xs uppercase tracking-[0.3em] text-[#2dd4bf] mb-1 font-semibold">
+          Ton Programme
+        </p>
+        <h2 className="text-2xl font-black">Programme 30 Jours</h2>
+      </div>
+      <div className="flex flex-col gap-3">
+        {weeks.map((week, wi) => {
+          const days = program[week.key];
+          const isOpen = openWeek === wi + 1;
+          return (
+            <div key={week.key} className="rounded-2xl border border-[#2dd4bf]/20 bg-[#2dd4bf]/[0.03] overflow-hidden">
+              <button
+                onClick={() => setOpenWeek(isOpen ? 0 : wi + 1)}
+                className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-[#2dd4bf]/[0.05] transition-colors"
+              >
+                <span className="font-bold text-sm uppercase tracking-widest text-[#2dd4bf]/80">{week.label}</span>
+                <span className="text-[#2dd4bf]/50 text-xs">{isOpen ? "▲" : "▼"}</span>
+              </button>
+              {isOpen && days && days.length > 0 && (
+                <div className="px-4 pb-4 flex flex-col gap-3">
+                  {days.map((day) => (
+                    <div key={day.day} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-white/25 mb-3">
+                        Jour {day.day}
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-[#e99846]/70 mb-2">
+                            🌅 Matin
+                          </p>
+                          <ul className="flex flex-col gap-1.5">
+                            {day.morning.map((action, i) => (
+                              <li key={i} className="flex items-start gap-1.5 text-xs text-white/60 leading-snug">
+                                <span className="mt-1.5 w-1 h-1 rounded-full bg-[#e99846]/50 flex-shrink-0" />
+                                {action}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-[#2dd4bf]/70 mb-2">
+                            🌙 Soir
+                          </p>
+                          <ul className="flex flex-col gap-1.5">
+                            {day.evening.map((action, i) => (
+                              <li key={i} className="flex items-start gap-1.5 text-xs text-white/60 leading-snug">
+                                <span className="mt-1.5 w-1 h-1 rounded-full bg-[#2dd4bf]/50 flex-shrink-0" />
+                                {action}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2 pt-2.5 border-t border-white/[0.05]">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#a78bfa]/60 flex-shrink-0 mt-0.5">
+                          💪 Exercice
+                        </span>
+                        <span className="text-xs text-white/55 leading-snug">{day.exercise}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Recommended Products Section ──────────────────────────────────────────────
+
+function RecommendedProductsSection({ products }: { products: RecommendedProduct[] }) {
+  return (
+    <div className="mb-8 fade-up" style={{ animationDelay: "1350ms", animationFillMode: "both" }}>
+      <div className="mb-5">
+        <p className="text-xs uppercase tracking-[0.3em] text-[#e99846] mb-1 font-semibold">
+          Sélection Personnalisée
+        </p>
+        <h2 className="text-2xl font-black">Produits Recommandés Pour Toi</h2>
+      </div>
+      <div className="flex flex-col gap-4">
+        {products.map((product, i) => (
+          <div
+            key={i}
+            className="rounded-2xl border border-[#e99846]/25 bg-[#e99846]/[0.03] p-5"
+          >
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="min-w-0">
+                <p className="font-bold text-white text-sm leading-snug">{product.product}</p>
+                <p className="text-xs text-[#e99846]/70 font-semibold mt-0.5">{product.brand}</p>
+              </div>
+              <a
+                href={`https://www.amazon.fr/s?k=${encodeURIComponent(product.amazon_search)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border border-[#e99846]/40 text-[#e99846] hover:bg-[#e99846]/15 transition-colors whitespace-nowrap"
+              >
+                Voir sur Amazon →
+              </a>
+            </div>
+            <p className="text-xs text-white/60 leading-relaxed mb-2.5">{product.reason}</p>
+            <div className="flex items-start gap-2 pt-2.5 border-t border-white/[0.05]">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-white/25 flex-shrink-0 mt-0.5">
+                Usage
+              </span>
+              <span className="text-xs text-white/45 leading-relaxed">{product.usage}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 // ── Paywall Modal ─────────────────────────────────────────────────────────────
@@ -1057,6 +1212,16 @@ export default function ResultsPage() {
                 ))}
               </div>
             </div>
+          )}
+
+          {/* 30-Day Program */}
+          {results.daily_program && (
+            <DailyProgramSection program={results.daily_program} />
+          )}
+
+          {/* Recommended Products */}
+          {results.recommended_products && results.recommended_products.length > 0 && (
+            <RecommendedProductsSection products={results.recommended_products} />
           )}
 
           {/* Actions */}
