@@ -208,6 +208,12 @@ export default function UploadPage() {
   const { t, lang } = useLang();
   const { user, authLoading, signOut } = useAuth();
 
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace("/auth/login");
+    }
+  }, [authLoading, user, router]);
+
   const handleSignOut = async () => {
     await signOut();
     router.push("/");
@@ -525,6 +531,16 @@ export default function UploadPage() {
       setLoading(false);
     }
   };
+
+  // ── auth guard ────────────────────────────────────────────────────────────
+
+  if (authLoading || !user) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#e99846] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   // ── derived render values ──────────────────────────────────────────────────
 
