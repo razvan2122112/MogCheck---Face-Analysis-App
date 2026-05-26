@@ -505,52 +505,89 @@ export default function ResultsPage() {
   const [payError, setPayError]         = useState<string | null>(null);
   const [limitReached, setLimitReached] = useState(false);
 
+  // Once Stripe verifies payment, this ref prevents Step 2 from overriding isPro→false
+  // when the profile hasn't been updated by the webhook yet.
+  const stripeVerifiedRef = useRef(false);
+
   // ── Step 1: load analysis data from sessionStorage (or pending snapshot) ──
   useEffect(() => {
     const stripeSessionId = new URLSearchParams(window.location.search).get("session_id");
+    console.log("[results] Step1 — stripeSessionId:", stripeSessionId ?? "(none)");
 
     let raw     = sessionStorage.getItem("mogrank_results");
     let photoSS = sessionStorage.getItem("mogrank_photo");
     let aid     = sessionStorage.getItem("mogrank_analysis_id");
+    console.log("[results] sessionStorage — analysisId:", aid, "hasResults:", !!raw, "hasPhoto:", !!photoSS);
 
-    // Restore from localStorage snapshot if sessionStorage was wiped (Safari/iOS)
+    // Restore from localStorage snapshot when sessionStorage was wiped (Safari/iOS cross-origin redirect)
+    const pendingRaw = localStorage.getItem("mogrank_pending");
+    console.log("[results] localStorage mogrank_pending:", pendingRaw ? "present" : "absent");
+
     if (!raw && stripeSessionId) {
       try {
-        const pending = localStorage.getItem("mogrank_pending");
-        if (pending) {
-          const { id, results: savedResults, photo: savedPhoto } = JSON.parse(pending) as {
+        if (pendingRaw) {
+          const { id, results: savedResults, photo: savedPhoto } = JSON.parse(pendingRaw) as {
             id: string; results: AnalysisResult; photo: string | null;
           };
+          console.log("[results] restoring from localStorage pending — id:", id);
           raw = JSON.stringify(savedResults);
           aid = id;
           photoSS = savedPhoto;
           sessionStorage.setItem("mogrank_results", raw);
           sessionStorage.setItem("mogrank_analysis_id", id);
           if (savedPhoto) sessionStorage.setItem("mogrank_photo", savedPhoto);
+        } else {
+          console.warn("[results] sessionStorage wiped AND no localStorage pending — cannot restore");
         }
-      } catch { /* ignore */ }
-      localStorage.removeItem("mogrank_pending");
+      } catch (e) {
+        console.error("[results] failed to restore pending:", e);
+      }
     }
 
-    if (!raw) { router.replace("/upload"); return; }
+    // Always clean up pending snapshot when returning from Stripe
+    if (stripeSessionId && pendingRaw) {
+      localStorage.removeItem("mogrank_pending");
+      console.log("[results] cleared mogrank_pending from localStorage");
+    }
+
+    if (!raw) {
+      console.warn("[results] no analysis data available — redirecting to /upload");
+      router.replace("/upload");
+      return;
+    }
     try {
       setResults(JSON.parse(raw));
       setLoaded(true);
       if (photoSS) setPhotoUrl(photoSS);
-    } catch { router.replace("/upload"); return; }
+      console.log("[results] analysis data loaded, analysisId:", aid);
+    } catch (e) {
+      console.error("[results] failed to parse results JSON:", e);
+      router.replace("/upload");
+      return;
+    }
 
-    // Stripe redirect: verify payment server-side then refresh profile
+    // Stripe redirect: verify payment server-side
     if (stripeSessionId) {
       setVerifying(true);
+      console.log("[results] calling /api/verify-payment with session_id:", stripeSessionId);
       fetch(`/api/verify-payment?session_id=${encodeURIComponent(stripeSessionId)}`)
         .then((r) => r.json())
-        .then(async ({ paid }: { paid: boolean }) => {
+        .then(({ paid }: { paid: boolean }) => {
+          console.log("[results] verify-payment returned:", { paid });
           if (paid) {
-            await refreshProfile();
+            // Lock the paid state BEFORE refreshProfile so Step 2 can never override it
+            stripeVerifiedRef.current = true;
             setIsPro(true);
+            console.log("[results] isPro set to TRUE via Stripe verification");
+            // Refresh profile in background — do NOT await (avoids Step 2 race condition)
+            refreshProfile().catch(() => {});
+          } else {
+            console.warn("[results] verify-payment returned paid:false — staying in free mode");
           }
         })
-        .catch(() => {})
+        .catch((err) => {
+          console.error("[results] verify-payment fetch error:", err);
+        })
         .finally(() => {
           setVerifying(false);
           window.history.replaceState({}, "", "/results");
@@ -562,25 +599,31 @@ export default function ResultsPage() {
   useEffect(() => {
     if (authLoading || !loaded) return;
 
+    console.log("[results] Step2 — stripeVerifiedRef:", stripeVerifiedRef.current, "user:", !!user, "profile.plan:", profile?.plan ?? "(no profile)");
+
     if (!user) {
-      // Not logged in — teaser only, must log in to pay
-      setIsPro(false);
+      if (!stripeVerifiedRef.current) {
+        setIsPro(false);
+        console.log("[results] Step2 — no user, isPro→false");
+      } else {
+        console.log("[results] Step2 — no user but stripeVerified, skipping setIsPro(false)");
+      }
       return;
     }
 
     if (!profile) return; // profile still loading
 
     const aid = sessionStorage.getItem("mogrank_analysis_id");
+    console.log("[results] Step2 — aid:", aid, "plan:", profile.plan);
 
     if (profile.plan === "monthly") {
       setIsPro(true);
-      // Check if new-analysis limit applies
       setLimitReached(false);
+      console.log("[results] Step2 — monthly plan → isPro=true");
       return;
     }
 
     if (profile.plan === "once") {
-      // Check if this specific analysis was paid for
       (async () => {
         try {
           const { data } = await supabase!.from("purchases")
@@ -588,17 +631,31 @@ export default function ResultsPage() {
             .eq("user_id", user.id)
             .eq("analysis_id", aid ?? "")
             .maybeSingle();
-          setIsPro(!!data);
+          console.log("[results] Step2 — once plan, purchases lookup:", { found: !!data, aid });
+          if (!stripeVerifiedRef.current) {
+            setIsPro(!!data);
+            console.log("[results] Step2 — once plan → isPro:", !!data);
+          } else {
+            console.log("[results] Step2 — once plan but stripeVerified, skipping setIsPro(", !!data, ")");
+          }
           setLimitReached(profile.analyses_used >= profile.analyses_limit);
         } catch {
-          setIsPro(false);
+          if (!stripeVerifiedRef.current) {
+            setIsPro(false);
+            console.log("[results] Step2 — once plan purchase lookup failed → isPro=false");
+          }
         }
       })();
       return;
     }
 
     // Free plan: not pro
-    setIsPro(false);
+    if (!stripeVerifiedRef.current) {
+      setIsPro(false);
+      console.log("[results] Step2 — free plan → isPro=false");
+    } else {
+      console.log("[results] Step2 — free plan but stripeVerified, skipping setIsPro(false)");
+    }
   }, [user, profile, authLoading, loaded, supabase]);
 
   // ── Step 3: save analysis to Supabase when isPro unlocked ─────────────────
