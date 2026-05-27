@@ -755,6 +755,7 @@ export default function ResultsPage() {
   const [limitReached, setLimitReached] = useState(false);
   const [showUsedModal, setShowUsedModal] = useState(false);
   const [showMonthlyModal, setShowMonthlyModal] = useState(false);
+  const [supabaseFallbackNeeded, setSupabaseFallbackNeeded] = useState(false);
 
   // Set true by Step 1 (Stripe redirect) so Step 2 never overrides isPro→false
   // before the webhook has updated the profile.
@@ -806,8 +807,8 @@ export default function ResultsPage() {
     }
 
     if (!raw) {
-      console.warn("[results] no analysis data available — redirecting to /upload");
-      router.replace("/upload");
+      console.warn("[results] no analysis data in sessionStorage — trying Supabase fallback");
+      setSupabaseFallbackNeeded(true);
       return;
     }
     try {
@@ -850,6 +851,37 @@ export default function ResultsPage() {
         });
     }
   }, [router, refreshProfile]);
+
+  // ── Step 1b: Supabase fallback when sessionStorage was empty ────────────────
+  useEffect(() => {
+    if (!supabaseFallbackNeeded || authLoading) return;
+    if (!user || !supabase) {
+      router.replace("/upload");
+      return;
+    }
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("analyses")
+          .select("results, score, created_at")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (data?.results) {
+          console.log("[results] loaded last analysis from Supabase, created_at:", data.created_at);
+          setResults(data.results as AnalysisResult);
+          setLoaded(true);
+        } else {
+          console.warn("[results] no analysis found in Supabase — redirecting to /upload");
+          router.replace("/upload");
+        }
+      } catch (err) {
+        console.error("[results] Supabase fallback error:", err);
+        router.replace("/upload");
+      }
+    })();
+  }, [supabaseFallbackNeeded, authLoading, user, supabase, router]);
 
   // ── Step 2: check analyses_remaining server-side (runs once per session) ──
   useEffect(() => {
