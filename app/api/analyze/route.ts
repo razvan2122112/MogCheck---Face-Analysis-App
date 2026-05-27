@@ -32,25 +32,49 @@ JSON schema:
   "summary": <string, 2-3 sentences>,
   "daily_program": {
     "week1": [
-      { "day": <1-7>, "morning": [<string>, ...], "evening": [<string>, ...], "exercise": <string> }
+      { "day": 1, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
+      { "day": 2, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
+      { "day": 3, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
+      { "day": 4, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
+      { "day": 5, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
+      { "day": 6, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
+      { "day": 7, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" }
     ],
     "week2": [
-      { "day": <1-7>, "morning": [<string>, ...], "evening": [<string>, ...], "exercise": <string> }
+      { "day": 1, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
+      { "day": 2, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
+      { "day": 3, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
+      { "day": 4, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
+      { "day": 5, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
+      { "day": 6, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
+      { "day": 7, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" }
     ],
     "week3": [
-      { "day": <1-7>, "morning": [<string>, ...], "evening": [<string>, ...], "exercise": <string> }
+      { "day": 1, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
+      { "day": 2, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
+      { "day": 3, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
+      { "day": 4, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
+      { "day": 5, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
+      { "day": 6, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
+      { "day": 7, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" }
     ],
     "week4": [
-      { "day": <1-7>, "morning": [<string>, ...], "evening": [<string>, ...], "exercise": <string> }
+      { "day": 1, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
+      { "day": 2, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
+      { "day": 3, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
+      { "day": 4, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
+      { "day": 5, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
+      { "day": 6, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
+      { "day": 7, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" }
     ]
   },
   "recommended_products": [
     {
-      "product": <exact product name>,
-      "brand": <brand name>,
-      "reason": <why this product for THIS specific face>,
-      "usage": <how and when to use it>,
-      "amazon_search": <exact Amazon search term>
+      "product": "exact product name",
+      "brand": "brand name",
+      "reason": "why this product for this specific face and detected flaws",
+      "usage": "how and when to use it",
+      "amazon_search": "exact amazon search term"
     }
   ]
 }
@@ -226,6 +250,9 @@ export async function POST(req: NextRequest) {
     let result: Record<string, unknown>;
     try {
       result = JSON.parse(jsonStr);
+      console.log("Claude response keys:", Object.keys(result));
+      console.log("HAS DAILY:", !!result.daily_program);
+      console.log("HAS PRODUCTS:", !!result.recommended_products);
     } catch (parseErr) {
       console.error("/api/analyze: JSON.parse failed:", parseErr, "| raw slice (0-500):", jsonStr.slice(0, 500));
       // Fallback: try to return a partial result without the large new fields
