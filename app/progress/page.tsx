@@ -361,20 +361,33 @@ export default function ProgressPage() {
 
           const matchAction = (f: DF) => {
             const n = f.flaw.toLowerCase();
-            if (/r.tention|retention|gonfl|puffy|bloat|bouffi|eau/.test(n))
-              return { icon: "🌅", slot: "Matin",    action: "Gua sha drainage lymphatique",          duration: "10 min" };
-            if (/m.choire|machoire|jaw|menton|chin|recessed|faible/.test(n))
-              return { icon: "💪", slot: "Exercice", action: "Falim gum 20 min + mewing position haute", duration: "20 min gum / 1h mewing" };
-            if (/cerne|dark.circle|under.eye|tear|yeux creux/.test(n))
-              return { icon: "🌙", slot: "Soir",     action: "Sérum caféine + cold compress",          duration: "5 min compress" };
-            if (/acn|peau|texture|skin|scarr|pores|oilin/.test(n))
-              return { icon: "🌙", slot: "Soir",     action: "Tretinoin 0.025% après nettoyant BHA",   duration: "Nuit entière" };
-            if (/double.menton|double.chin|neck|cou/.test(n))
-              return { icon: "💪", slot: "Exercice", action: "Neck curls 3×15 + chin tucks 3×20",      duration: "15 min" };
-            if (/canthal|tilt|droopy|tombant/.test(n))
-              return { icon: "💪", slot: "Exercice", action: "Chin tuck contre mur + posture stricte", duration: "3×20 reps" };
+            const w = Math.min(weekNum, 4);
+            if (/r.tention|retention|gonfl|puffy|bloat|bouffi|eau/.test(n)) {
+              const a = ["Gua sha 10 min", "Gua sha 15 min", "Gua sha 20 min", "Gua sha 25 min + massage sous-mandibulaire"][w - 1];
+              return { icon: "🌅", slot: "Matin",    action: a, duration: `S${weekNum}` };
+            }
+            if (/m.choire|machoire|jaw|menton|chin|recessed|faible/.test(n)) {
+              const a = ["Falim gum 20 min + mewing 1h", "Falim gum 25 min + mewing 2h", "Falim gum 30 min + mewing 3h", "Falim gum 35 min + mewing 24/7"][w - 1];
+              return { icon: "💪", slot: "Exercice", action: a, duration: `S${weekNum}` };
+            }
+            if (/cerne|dark.circle|under.eye|tear|yeux creux/.test(n)) {
+              const a = ["Sérum caféine 1×/jour", "Sérum caféine 2×/jour", "Sérum caféine 2×/jour + cold compress", "Sérum caféine 2×/jour + cold compress + massage"][w - 1];
+              return { icon: "🌙", slot: "Soir",     action: a, duration: `S${weekNum}` };
+            }
+            if (/acn|peau|texture|skin|scarr|pores|oilin/.test(n)) {
+              const a = ["Tretinoin 2×/semaine", "Tretinoin 3×/semaine", "Tretinoin 4×/semaine", "Tretinoin tous les soirs"][w - 1];
+              return { icon: "🌙", slot: "Soir",     action: a, duration: `S${weekNum}` };
+            }
+            if (/double.menton|double.chin|neck|cou/.test(n)) {
+              const a = ["Neck curls 3×10", "Neck curls 3×15", "Neck curls 4×15", "Neck curls 4×20 + neck bridges"][w - 1];
+              return { icon: "💪", slot: "Exercice", action: a, duration: `S${weekNum}` };
+            }
+            if (/canthal|tilt|droopy|tombant|posture/.test(n)) {
+              const a = ["Chin tucks 5×10", "Chin tucks 5×15", "Chin tucks 6×15", "Chin tucks 6×20 + wall angels"][w - 1];
+              return { icon: "💪", slot: "Exercice", action: a, duration: `S${weekNum}` };
+            }
             if (/asym/.test(n))
-              return { icon: "🌙", slot: "Soir",     action: "Dormir sur le dos, oreiller ferme",      duration: "7-9h" };
+              return { icon: "🌙", slot: "Soir",     action: "Dormir sur le dos, oreiller ferme", duration: "7-9h" };
             return   { icon: "🌅", slot: "Matin",    action: f.fix || "Appliquer le protocole de base", duration: "10 min" };
           };
 
@@ -402,7 +415,12 @@ export default function ProgressPage() {
           const dedupedActions = Array.from(seen.values());
           if (dedupedActions.length === 0) return null;
 
-          const WEEK_LABELS = ["Fondations", "Intensification", "Optimisation", "Peak Performance"];
+          const WEEK_LABELS = [
+            "Fondations — 50%",
+            "Intensification — 70%",
+            "Optimisation — 85%",
+            "Peak Performance — 100% 🔥",
+          ];
 
           return (
             <div className="mb-8">
@@ -425,8 +443,12 @@ export default function ProgressPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-[#e99846]/60">{a.slot}</span>
-                          <span className="text-[10px] text-white/20">·</span>
-                          <span className="text-[10px] text-white/30">{a.duration}</span>
+                          {!/^S\d+$/.test(a.duration) && (
+                            <>
+                              <span className="text-[10px] text-white/20">·</span>
+                              <span className="text-[10px] text-white/30">{a.duration}</span>
+                            </>
+                          )}
                         </div>
                         <p className="text-sm font-semibold text-white/80 leading-snug">{a.action}</p>
                         <p className="text-[11px] text-white/35 mt-0.5 leading-snug">Pour : {a.flaws.join(" + ")}</p>
