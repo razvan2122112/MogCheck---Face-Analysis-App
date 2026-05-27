@@ -343,6 +343,86 @@ export default function ProgressPage() {
           </div>
         </div>
 
+        {/* ── programme de la semaine ────────────────────────────────────── */}
+        {(() => {
+          const weekNum = daysSince < 7 ? 1 : daysSince < 14 ? 2 : daysSince < 21 ? 3 : 4;
+
+          const WEEKS = [
+            {
+              label: "Fondations — Établir les habitudes de base",
+              focus: ["Skincare routine matin/soir", "Mewing initiation — 1h/jour langue contre palais", "Gua sha quotidien 10 min, drainage lymphatique"],
+            },
+            {
+              label: "Intensification — Augmenter la charge",
+              focus: ["Doubler durée mastication (mastic gum 40 min/jour)", "Ajouter neck curls 3×15 + neck bridges", "Intensifier drainage lymphatique, réduire sodium"],
+            },
+            {
+              label: "Optimisation — Ajuster selon résultats",
+              focus: ["Tretinoin toutes les nuits (0.025%)", "Mewing intensif — 2h/jour, posture stricte", "Déficit calorique strict pour réduire rétention"],
+            },
+            {
+              label: "Peak Performance — Protocole maximal",
+              focus: ["Tous les protocoles à intensité maximale", "Évaluation des résultats — comparer avec analyse initiale", "Ajuster programme selon flaws restants"],
+            },
+          ];
+
+          // Build flaw-specific bullet points from the latest analysis
+          interface DetectedFlaw { flaw: string; severity: string; fix: string }
+          const flaws = (
+            (latest.results as Record<string, unknown>)?.detected_flaws as DetectedFlaw[] | undefined
+          ) ?? [];
+
+          const flawActions: string[] = [];
+          for (const f of flaws.slice(0, 3)) {
+            if (f.fix) flawActions.push(f.fix);
+          }
+          // Pad with week defaults if not enough flaws
+          while (flawActions.length < 3) {
+            flawActions.push(WEEKS[Math.min(weekNum - 1, 3)].focus[flawActions.length]);
+          }
+
+          const week = WEEKS[Math.min(weekNum - 1, 3)];
+
+          return (
+            <div className="mb-8">
+              <h2 className="text-xs font-bold text-white/40 uppercase tracking-[0.2em] mb-4">Programme de la semaine</h2>
+              <div className="rounded-2xl border border-[#e99846]/25 bg-[#e99846]/[0.03] p-5">
+                {/* Badge + title */}
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-sm font-bold text-white/80 leading-snug max-w-[220px]">{week.label}</p>
+                  <span className="flex-none px-2.5 py-1 rounded-full bg-[#e99846]/15 border border-[#e99846]/30 text-[#e99846] text-[10px] font-bold tracking-widest uppercase">
+                    S{weekNum} / 13
+                  </span>
+                </div>
+
+                {/* Flaw-driven bullet points */}
+                <ul className="flex flex-col gap-2.5">
+                  {flawActions.map((action, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-xs text-white/60 leading-snug">
+                      <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[#e99846]/60 flex-shrink-0" />
+                      {action}
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Week progress bar */}
+                <div className="mt-4 pt-4 border-t border-white/[0.06]">
+                  <div className="flex justify-between text-[10px] text-white/25 mb-1.5">
+                    <span>Jour {daysSince + 1}</span>
+                    <span>90 jours</span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-[#e99846]/70 to-[#e99846]"
+                      style={{ width: `${Math.min(100, ((daysSince + 1) / 90) * 100).toFixed(1)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* ── motivation ─────────────────────────────────────────────────── */}
         <div className="mb-8">
           {needsMore && (
