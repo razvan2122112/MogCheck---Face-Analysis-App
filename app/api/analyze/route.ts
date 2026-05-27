@@ -30,52 +30,20 @@ JSON schema:
   "perfect_version": <string: 2-3 sentences describing SPECIFICALLY what this person could look like at their absolute maximum potential after 60-90 days of dedicated looksmaxxing — name the key features that will improve most, give rough improvement estimates, project a final score range. Be motivational, specific, and grounded.>,
   "potential_score": <number 0-10: their realistic achievable score after 60-90 days with the right program. Must be overall_score + 0.5 minimum, + 2.0 maximum. High-scoring faces gain less (0.5-0.8 pts), lower-scoring faces with fixable flaws gain more (1.2-2.0 pts).>,
   "summary": <string, 2-3 sentences>,
-  "daily_program": {
-    "week1": [
-      { "day": 1, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
-      { "day": 2, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
-      { "day": 3, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
-      { "day": 4, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
-      { "day": 5, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
-      { "day": 6, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
-      { "day": 7, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" }
-    ],
-    "week2": [
-      { "day": 1, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
-      { "day": 2, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
-      { "day": 3, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
-      { "day": 4, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
-      { "day": 5, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
-      { "day": 6, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
-      { "day": 7, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" }
-    ],
-    "week3": [
-      { "day": 1, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
-      { "day": 2, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
-      { "day": 3, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
-      { "day": 4, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
-      { "day": 5, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
-      { "day": 6, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
-      { "day": 7, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" }
-    ],
-    "week4": [
-      { "day": 1, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
-      { "day": 2, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
-      { "day": 3, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
-      { "day": 4, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
-      { "day": 5, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
-      { "day": 6, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" },
-      { "day": 7, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice spécifique avec durée/répétitions" }
-    ]
-  },
+  "daily_program": [
+    { "day": 1, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice avec duree/repetitions" },
+    { "day": 2, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice avec duree/repetitions" },
+    { "day": 3, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice avec duree/repetitions" },
+    { "day": 4, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice avec duree/repetitions" },
+    { "day": 5, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice avec duree/repetitions" },
+    { "day": 6, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice avec duree/repetitions" },
+    { "day": 7, "morning": ["action matin 1", "action matin 2"], "evening": ["action soir 1", "action soir 2"], "exercise": "exercice avec duree/repetitions" }
+  ],
   "recommended_products": [
-    {
-      "product": "exact product name",
-      "brand": "brand name",
-      "reason": "why this product for this specific face and detected flaws",
-      "usage": "how and when to use it",
-      "amazon_search": "exact amazon search term"
-    }
+    { "product": "exact product name", "brand": "brand name", "reason": "why for this specific face", "usage": "how and when to use", "amazon_search": "exact amazon search term" },
+    { "product": "exact product name", "brand": "brand name", "reason": "why for this specific face", "usage": "how and when to use", "amazon_search": "exact amazon search term" },
+    { "product": "exact product name", "brand": "brand name", "reason": "why for this specific face", "usage": "how and when to use", "amazon_search": "exact amazon search term" },
+    { "product": "exact product name", "brand": "brand name", "reason": "why for this specific face", "usage": "how and when to use", "amazon_search": "exact amazon search term" }
   ]
 }
 
@@ -125,16 +93,15 @@ For the improvement_plan, be VERY specific:
 
 Never give generic advice. Every recommendation must directly address a specific detected flaw.
 
-daily_program — build a 4-week day-by-day program strictly based on detected flaws:
-- Each day must have 2-3 morning actions, 2-3 evening actions, and 1 specific exercise with duration/reps.
+daily_program — build a 7-day flat array strictly based on detected flaws. Exactly 7 entries, day 1 through day 7:
+- Each day must have 2 morning actions, 2 evening actions, and 1 specific exercise with duration/reps.
 - If water retention / bloated face detected: include gua sha massage, lymphatic drainage techniques, avoid-salt reminders.
-- If acne detected: include BHA cleanse schedule, tretinoin application nights (start week 2), SPF reminders.
+- If acne detected: include BHA cleanse schedule, tretinoin application nights, SPF reminders.
 - If weak jawline detected: include mewing hold duration, mastic gum chewing sets, neck bridges.
 - If dark circles detected: include caffeine serum application, cold compress routine, sleep elevation.
-- Progressively increase intensity week over week (week 1 = foundation, week 4 = advanced).
 - Every single action must reference a detected flaw by name.
 
-recommended_products — list 5-8 products that directly address the detected flaws:
+recommended_products — list exactly 4 products that directly address the detected flaws:
 - Each product must have an exact name, brand, specific reason tied to a detected flaw, usage instructions, and an Amazon search term that will find it.
 - Do not recommend any product that does not address at least one detected flaw.
 - Prioritize products by impact — most critical flaw first.
