@@ -386,7 +386,21 @@ export default function ProgressPage() {
             return { ...matchAction(f), flaw: f.flaw, status };
           });
 
-          if (actions.length === 0) return null;
+          // Deduplicate by action title — merge "Pour" reasons for same action
+          const seen = new Map<string, typeof actions[number] & { flaws: string[] }>();
+          for (const a of actions) {
+            if (seen.has(a.action)) {
+              seen.get(a.action)!.flaws.push(a.flaw);
+              // Upgrade status: persists > improved > new
+              const cur = seen.get(a.action)!;
+              if (a.status === "persists") cur.status = "persists";
+              else if (a.status === "improved" && cur.status === "new") cur.status = "improved";
+            } else {
+              seen.set(a.action, { ...a, flaws: [a.flaw] });
+            }
+          }
+          const dedupedActions = Array.from(seen.values());
+          if (dedupedActions.length === 0) return null;
 
           const WEEK_LABELS = ["Fondations", "Intensification", "Optimisation", "Peak Performance"];
 
@@ -405,7 +419,7 @@ export default function ProgressPage() {
 
                 {/* Flaw-driven actions */}
                 <div className="flex flex-col divide-y divide-white/[0.04]">
-                  {actions.map((a, i) => (
+                  {dedupedActions.map((a, i) => (
                     <div key={i} className="px-5 py-3.5 flex items-start gap-3">
                       <span className="text-base flex-none mt-0.5">{a.icon}</span>
                       <div className="flex-1 min-w-0">
@@ -415,7 +429,7 @@ export default function ProgressPage() {
                           <span className="text-[10px] text-white/30">{a.duration}</span>
                         </div>
                         <p className="text-sm font-semibold text-white/80 leading-snug">{a.action}</p>
-                        <p className="text-[11px] text-white/35 mt-0.5 leading-snug">Pour : {a.flaw}</p>
+                        <p className="text-[11px] text-white/35 mt-0.5 leading-snug">Pour : {a.flaws.join(" + ")}</p>
                       </div>
                       {a.status !== "new" && (
                         <span className={`flex-none text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${
