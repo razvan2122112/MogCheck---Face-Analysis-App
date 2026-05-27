@@ -484,6 +484,58 @@ export default function ProgressPage() {
           );
         })()}
 
+        {/* ── voir dernière analyse + produits recommandés ───────────────── */}
+        {(() => {
+          interface RP { product: string; brand: string; reason: string; usage: string; amazon_search: string }
+          const products = ((latest.results as Record<string, unknown>)?.recommended_products as RP[] | undefined) ?? [];
+
+          return (
+            <>
+              {/* Button */}
+              <div className="mb-6 text-center">
+                <Link
+                  href="/results"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-sm bg-[#e99846]/10 border border-[#e99846]/30 text-[#e99846] hover:bg-[#e99846]/20 transition-colors"
+                >
+                  📊 Voir ma dernière analyse complète →
+                </Link>
+              </div>
+
+              {/* Recommended products */}
+              {products.length > 0 && (
+                <div className="mb-8">
+                  <h2 className="text-xs font-bold text-white/40 uppercase tracking-[0.2em] mb-4">Produits Recommandés Pour Toi</h2>
+                  <div className="flex flex-col gap-4">
+                    {products.map((p, i) => (
+                      <div key={i} className="rounded-2xl border border-[#e99846]/25 bg-[#e99846]/[0.03] p-5">
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <div className="min-w-0">
+                            <p className="font-bold text-white text-sm leading-snug">{p.product}</p>
+                            <p className="text-xs text-[#e99846]/70 font-semibold mt-0.5">{p.brand}</p>
+                          </div>
+                          <a
+                            href={`https://www.amazon.fr/s?k=${encodeURIComponent(p.amazon_search)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border border-[#e99846]/40 text-[#e99846] hover:bg-[#e99846]/15 transition-colors whitespace-nowrap"
+                          >
+                            Voir sur Amazon →
+                          </a>
+                        </div>
+                        <p className="text-xs text-white/60 leading-relaxed mb-2.5">{p.reason}</p>
+                        <div className="flex items-start gap-2 pt-2.5 border-t border-white/[0.05]">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-white/25 flex-shrink-0 mt-0.5">Usage</span>
+                          <span className="text-xs text-white/45 leading-relaxed">{p.usage}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        })()}
+
         {/* ── motivation ─────────────────────────────────────────────────── */}
         <div className="mb-8">
           {needsMore && (
