@@ -343,70 +343,95 @@ export default function ProgressPage() {
           </div>
         </div>
 
-        {/* ── programme de la semaine ────────────────────────────────────── */}
+        {/* ── programme cette semaine ────────────────────────────────────── */}
         {(() => {
           const weekNum = daysSince < 7 ? 1 : daysSince < 14 ? 2 : daysSince < 21 ? 3 : 4;
 
-          const WEEKS = [
-            {
-              label: "Fondations — Établir les habitudes de base",
-              focus: ["Skincare routine matin/soir", "Mewing initiation — 1h/jour langue contre palais", "Gua sha quotidien 10 min, drainage lymphatique"],
-            },
-            {
-              label: "Intensification — Augmenter la charge",
-              focus: ["Doubler durée mastication (mastic gum 40 min/jour)", "Ajouter neck curls 3×15 + neck bridges", "Intensifier drainage lymphatique, réduire sodium"],
-            },
-            {
-              label: "Optimisation — Ajuster selon résultats",
-              focus: ["Tretinoin toutes les nuits (0.025%)", "Mewing intensif — 2h/jour, posture stricte", "Déficit calorique strict pour réduire rétention"],
-            },
-            {
-              label: "Peak Performance — Protocole maximal",
-              focus: ["Tous les protocoles à intensité maximale", "Évaluation des résultats — comparer avec analyse initiale", "Ajuster programme selon flaws restants"],
-            },
-          ];
+          interface DF { flaw: string; severity: string; fix: string }
+          const latestFlaws = ((latest.results as Record<string, unknown>)?.detected_flaws as DF[]) ?? [];
+          const prevAnalysis = analyses.length >= 2 ? analyses[analyses.length - 2] : null;
+          const prevFlaws: DF[] = prevAnalysis
+            ? (((prevAnalysis.results as Record<string, unknown>)?.detected_flaws as DF[]) ?? [])
+            : [];
 
-          // Build flaw-specific bullet points from the latest analysis
-          interface DetectedFlaw { flaw: string; severity: string; fix: string }
-          const flaws = (
-            (latest.results as Record<string, unknown>)?.detected_flaws as DetectedFlaw[] | undefined
-          ) ?? [];
+          const sevRank = (s: string) => s === "severe" ? 3 : s === "moderate" ? 2 : 1;
 
-          const flawActions: string[] = [];
-          for (const f of flaws.slice(0, 3)) {
-            if (f.fix) flawActions.push(f.fix);
-          }
-          // Pad with week defaults if not enough flaws
-          while (flawActions.length < 3) {
-            flawActions.push(WEEKS[Math.min(weekNum - 1, 3)].focus[flawActions.length]);
-          }
+          const prevSevMap = new Map<string, string>();
+          for (const f of prevFlaws) prevSevMap.set(f.flaw.toLowerCase().slice(0, 12), f.severity);
 
-          const week = WEEKS[Math.min(weekNum - 1, 3)];
+          const matchAction = (f: DF) => {
+            const n = f.flaw.toLowerCase();
+            if (/r.tention|retention|gonfl|puffy|bloat|bouffi|eau/.test(n))
+              return { icon: "🌅", slot: "Matin",    action: "Gua sha drainage lymphatique",          duration: "10 min" };
+            if (/m.choire|machoire|jaw|menton|chin|recessed|faible/.test(n))
+              return { icon: "💪", slot: "Exercice", action: "Falim gum 20 min + mewing position haute", duration: "20 min gum / 1h mewing" };
+            if (/cerne|dark.circle|under.eye|tear|yeux creux/.test(n))
+              return { icon: "🌙", slot: "Soir",     action: "Sérum caféine + cold compress",          duration: "5 min compress" };
+            if (/acn|peau|texture|skin|scarr|pores|oilin/.test(n))
+              return { icon: "🌙", slot: "Soir",     action: "Tretinoin 0.025% après nettoyant BHA",   duration: "Nuit entière" };
+            if (/double.menton|double.chin|neck|cou/.test(n))
+              return { icon: "💪", slot: "Exercice", action: "Neck curls 3×15 + chin tucks 3×20",      duration: "15 min" };
+            if (/canthal|tilt|droopy|tombant/.test(n))
+              return { icon: "💪", slot: "Exercice", action: "Chin tuck contre mur + posture stricte", duration: "3×20 reps" };
+            if (/asym/.test(n))
+              return { icon: "🌙", slot: "Soir",     action: "Dormir sur le dos, oreiller ferme",      duration: "7-9h" };
+            return   { icon: "🌅", slot: "Matin",    action: f.fix || "Appliquer le protocole de base", duration: "10 min" };
+          };
+
+          const actions = latestFlaws.slice(0, 5).map(f => {
+            const key = f.flaw.toLowerCase().slice(0, 12);
+            const prevSev = prevSevMap.get(key);
+            const status: "new" | "improved" | "persists" = !prevSev ? "new"
+              : sevRank(f.severity) < sevRank(prevSev) ? "improved" : "persists";
+            return { ...matchAction(f), flaw: f.flaw, status };
+          });
+
+          if (actions.length === 0) return null;
+
+          const WEEK_LABELS = ["Fondations", "Intensification", "Optimisation", "Peak Performance"];
 
           return (
             <div className="mb-8">
-              <h2 className="text-xs font-bold text-white/40 uppercase tracking-[0.2em] mb-4">Programme de la semaine</h2>
-              <div className="rounded-2xl border border-[#e99846]/25 bg-[#e99846]/[0.03] p-5">
-                {/* Badge + title */}
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-sm font-bold text-white/80 leading-snug max-w-[220px]">{week.label}</p>
-                  <span className="flex-none px-2.5 py-1 rounded-full bg-[#e99846]/15 border border-[#e99846]/30 text-[#e99846] text-[10px] font-bold tracking-widest uppercase">
+              <h2 className="text-xs font-bold text-white/40 uppercase tracking-[0.2em] mb-4">Programme Cette Semaine</h2>
+              <div className="rounded-2xl border border-[#e99846]/25 bg-[#e99846]/[0.03] overflow-hidden">
+
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/[0.06]">
+                  <p className="text-sm font-bold text-white/80">{WEEK_LABELS[Math.min(weekNum - 1, 3)]}</p>
+                  <span className="px-2.5 py-1 rounded-full bg-[#e99846]/15 border border-[#e99846]/30 text-[#e99846] text-[10px] font-bold tracking-widest uppercase">
                     S{weekNum} / 13
                   </span>
                 </div>
 
-                {/* Flaw-driven bullet points */}
-                <ul className="flex flex-col gap-2.5">
-                  {flawActions.map((action, i) => (
-                    <li key={i} className="flex items-start gap-2.5 text-xs text-white/60 leading-snug">
-                      <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[#e99846]/60 flex-shrink-0" />
-                      {action}
-                    </li>
+                {/* Flaw-driven actions */}
+                <div className="flex flex-col divide-y divide-white/[0.04]">
+                  {actions.map((a, i) => (
+                    <div key={i} className="px-5 py-3.5 flex items-start gap-3">
+                      <span className="text-base flex-none mt-0.5">{a.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#e99846]/60">{a.slot}</span>
+                          <span className="text-[10px] text-white/20">·</span>
+                          <span className="text-[10px] text-white/30">{a.duration}</span>
+                        </div>
+                        <p className="text-sm font-semibold text-white/80 leading-snug">{a.action}</p>
+                        <p className="text-[11px] text-white/35 mt-0.5 leading-snug">Pour : {a.flaw}</p>
+                      </div>
+                      {a.status !== "new" && (
+                        <span className={`flex-none text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${
+                          a.status === "improved"
+                            ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                            : "bg-orange-500/10 text-orange-400 border border-orange-500/20"
+                        }`}>
+                          {a.status === "improved" ? "✅ Amélioré" : "⚠️ À intensifier"}
+                        </span>
+                      )}
+                    </div>
                   ))}
-                </ul>
+                </div>
 
-                {/* Week progress bar */}
-                <div className="mt-4 pt-4 border-t border-white/[0.06]">
+                {/* 90-day progress bar */}
+                <div className="px-5 pb-5 pt-4 border-t border-white/[0.06]">
                   <div className="flex justify-between text-[10px] text-white/25 mb-1.5">
                     <span>Jour {daysSince + 1}</span>
                     <span>90 jours</span>
