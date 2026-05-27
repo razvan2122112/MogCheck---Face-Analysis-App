@@ -332,9 +332,6 @@ export default function Home() {
             </button>
             {!authLoading && user ? (
               <>
-                <Link href="/progress" className="btn btn-ghost" style={{ height: 38, padding: "0 14px", fontSize: 13 }}>
-                  Ma Progression
-                </Link>
                 <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {user.email}
                 </span>

@@ -137,85 +137,14 @@ export default function ProgressPage() {
     );
   }
 
-  // ── locked preview (not logged in) ─────────────────────────────────────────
+  // ── access guard (not logged in or no analyses yet) ───────────────────────
 
-  if (!user) {
+  if (!user || analyses.length === 0) {
+    router.replace("/upload");
     return (
-      <main className="min-h-screen bg-[#0a0a0a] text-[#ededed] flex flex-col">
-        {navEl}
-        <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
-          {/* Blurred chart preview */}
-          <div className="w-full max-w-sm mb-7">
-            <div className="relative rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden" style={{ height: 180 }}>
-              <div className="absolute inset-0 opacity-25">
-                <MockChart />
-              </div>
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 backdrop-blur-sm bg-black/50">
-                <span className="text-3xl">🔒</span>
-                <p className="text-xs font-semibold text-white/50">Progression verrouillée</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Blurred stat chips */}
-          <div className="flex gap-3 mb-8 w-full max-w-sm">
-            {["Score actuel", "1er score", "Jours"].map(label => (
-              <div key={label} className="flex-1 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 text-center">
-                <div className="text-[9px] font-mono text-white/25 uppercase tracking-wider mb-1">{label}</div>
-                <div className="text-2xl font-black text-white/10 blur-sm select-none">7.8</div>
-              </div>
-            ))}
-          </div>
-
-          <div className="text-center mb-8 max-w-xs">
-            <p className="text-xs uppercase tracking-[0.3em] text-[#e99846] mb-3 font-semibold">Progression 90 jours</p>
-            <h1 className="text-3xl font-black mb-3 leading-tight">
-              Suis ta<br /><span className="text-[#e99846]">transformation</span>
-            </h1>
-            <p className="text-white/40 text-sm leading-relaxed">
-              Crée ton compte gratuit pour tracker ta progression et valider les résultats du programme sur 90 jours.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-3 w-full max-w-xs">
-            <Link
-              href="/auth/signup"
-              className="w-full py-4 rounded-full font-bold text-sm bg-[#e99846] text-[#0a0a0a] hover:bg-[#f0b060] hover:scale-[1.02] transition-all text-center shadow-lg shadow-[#e99846]/15"
-            >
-              Crée ton compte gratuit pour tracker ta progression →
-            </Link>
-            <Link
-              href="/auth/login"
-              className="w-full py-3.5 rounded-full font-bold text-sm border border-white/15 text-white/60 hover:border-white/30 hover:text-white transition-all text-center"
-            >
-              J'ai déjà un compte
-            </Link>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  // ── empty state ────────────────────────────────────────────────────────────
-
-  if (analyses.length === 0) {
-    return (
-      <main className="min-h-screen bg-[#0a0a0a] text-[#ededed] flex flex-col">
-        {navEl}
-        <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
-          <div className="text-6xl mb-5">📈</div>
-          <h1 className="text-2xl font-black mb-3">Aucune analyse enregistrée</h1>
-          <p className="text-white/40 text-sm mb-8 max-w-xs leading-relaxed">
-            Fais ta première analyse pour commencer à tracker ta progression sur 90 jours.
-          </p>
-          <Link
-            href="/upload"
-            className="px-10 py-4 rounded-full font-bold text-sm bg-[#e99846] text-[#0a0a0a] hover:bg-[#f0b060] hover:scale-105 transition-all shadow-lg shadow-[#e99846]/15"
-          >
-            Faire ma première analyse →
-          </Link>
-        </div>
-      </main>
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#e99846] border-t-transparent rounded-full animate-spin" />
+      </div>
     );
   }
 

@@ -1251,7 +1251,16 @@ export default function ResultsPage() {
             </button>
           </div>
 
-          <p className="mt-8 text-center text-xs text-white/20">{t.results.disclaimer}</p>
+          <div className="mt-6 text-center">
+            <Link
+              href="/progress"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-sm bg-[#e99846]/10 border border-[#e99846]/30 text-[#e99846] hover:bg-[#e99846]/20 transition-colors"
+            >
+              📈 Suivre ma progression →
+            </Link>
+          </div>
+
+          <p className="mt-6 text-center text-xs text-white/20">{t.results.disclaimer}</p>
         </div>
       </main>
     );
