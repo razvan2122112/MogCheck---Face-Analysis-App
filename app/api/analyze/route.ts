@@ -1,5 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { getServerClient, getServiceClient } from "@/lib/supabase";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -128,6 +130,40 @@ export async function POST(req: NextRequest) {
       lang?: string;
     };
 
+    // ── Authenticate user and enforce 1-per-day limit ──────────────────────
+    let userId: string | null = null;
+    try {
+      const cookieStore = await cookies();
+      const supabase = getServerClient(cookieStore);
+      const { data: { session } } = await supabase.auth.getSession();
+      userId = session?.user?.id ?? null;
+    } catch { /* no auth — proceed without user */ }
+
+    if (userId) {
+      const db = getServiceClient();
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const { data: existing } = await db
+        .from("analyses")
+        .select("id, created_at")
+        .eq("user_id", userId)
+        .gte("created_at", todayStart.toISOString())
+        .limit(1)
+        .maybeSingle();
+
+      if (existing) {
+        const tomorrow = new Date(todayStart);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const nextDate = tomorrow.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+        return NextResponse.json({
+          error: "daily_limit",
+          message: "Tu as déjà analysé ton visage aujourd'hui. Reviens demain pour suivre ta progression !",
+          next_analysis: nextDate,
+        }, { status: 429 });
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     const systemPrompt = SYSTEM_PROMPT_BASE + (lang === "fr" ? FRENCH_SUFFIX : "");
 
     const validMimeTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
@@ -243,6 +279,23 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: `Invalid response: missing ${field}` }, { status: 500 });
       }
     }
+
+    // ── Save analysis to Supabase ─────────────────────────────────────────
+    if (userId) {
+      try {
+        const db = getServiceClient();
+        await db.from("analyses").insert({
+          user_id: userId,
+          score: result.overall_score as number,
+          results: result,
+        });
+        console.log("[analyze] saved analysis for userId:", userId);
+      } catch (saveErr) {
+        console.error("[analyze] failed to save analysis:", saveErr);
+        // Non-fatal — still return result to client
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     return NextResponse.json(result);
   } catch (err) {

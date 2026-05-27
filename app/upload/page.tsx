@@ -253,6 +253,7 @@ export default function UploadPage() {
   const [currentYaw, setCurrentYaw]         = useState(0);
   const [loading, setLoading]               = useState(false);
   const [error, setError]                   = useState<string | null>(null);
+  const [dailyLimitReached, setDailyLimitReached] = useState<string | null>(null); // holds next_analysis date
 
   useEffect(() => {
     return () => {
@@ -482,8 +483,13 @@ export default function UploadPage() {
         body: JSON.stringify({ images: [photos.front, photos.left, photos.right], mimeType: "image/jpeg", lang }),
       });
       if (!res.ok) {
-        const { error: msg } = await res.json();
-        throw new Error(msg ?? t.upload.errAnalysisFailed);
+        const body = await res.json();
+        if (body.error === "daily_limit") {
+          setDailyLimitReached(body.next_analysis ?? "demain");
+          setLoading(false);
+          return;
+        }
+        throw new Error(body.error ?? t.upload.errAnalysisFailed);
       }
       const analysisResult = await res.json();
       const analysisId = `mog_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -538,6 +544,30 @@ export default function UploadPage() {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-[#e99846] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // ── daily limit screen ────────────────────────────────────────────────────
+
+  if (dailyLimitReached) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] text-[#ededed] flex flex-col items-center justify-center px-6 text-center gap-6">
+        <div className="text-5xl">✅</div>
+        <div>
+          <h1 className="text-2xl font-black mb-2">Analyse du jour complétée !</h1>
+          <p className="text-white/50 text-sm max-w-xs mx-auto leading-relaxed">
+            Reviens demain pour ta prochaine session.
+            <br />
+            <span className="text-[#e99846]">{dailyLimitReached}</span>
+          </p>
+        </div>
+        <Link
+          href="/results"
+          className="px-6 py-3 rounded-full font-semibold text-sm bg-[#e99846] text-[#0a0a0a] hover:bg-[#f0b060] transition-all hover:scale-105"
+        >
+          Voir mes résultats →
+        </Link>
       </div>
     );
   }
