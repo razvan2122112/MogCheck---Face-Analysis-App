@@ -56,7 +56,7 @@
 
 .landing-pg .brand {display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:-0.02em}
 
-.landing-pg .brand-mark {width:28px;height:28px;background:var(--ink);-webkit-mask:url("993fa2e9-6daf-44c8-8f5a-9c9a1dc9c251") center/contain no-repeat;mask:url("993fa2e9-6daf-44c8-8f5a-9c9a1dc9c251") center/contain no-repeat;display:block;flex:0 0 auto}
+.landing-pg .brand-mark {width:28px;height:28px;background:var(--ink);-webkit-mask:none;mask:none;display:block;flex:0 0 auto}
 
 .landing-pg .nav-links {display:flex;gap:32px;font-size:15px;font-weight:500;color:var(--ink)}
 
