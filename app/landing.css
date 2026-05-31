@@ -41,7 +41,7 @@
 .landing-pg .nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);background:rgba(250,246,236,0.82);border-bottom:1px solid var(--line)}
 .landing-pg .nav-inner{display:flex;align-items:center;justify-content:space-between;height:72px;gap:24px}
 .landing-pg .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:-0.02em}
-.landing-pg .brand-mark{width:28px;height:28px;border-radius:6px;background:var(--ink);display:block;flex:0 0 auto}
+.landing-pg .brand-mark{width:28px;height:28px;border-radius:6px;display:block;flex:0 0 auto;object-fit:contain}
 .landing-pg .nav-links{display:flex;gap:32px;font-size:15px;font-weight:500;color:var(--ink)}
 .landing-pg .nav-links a{transition:opacity .2s}
 .landing-pg .nav-links a:hover{opacity:.6}

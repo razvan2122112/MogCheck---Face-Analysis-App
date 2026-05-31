@@ -7,9 +7,9 @@ import { useAuth } from "./context/auth";
 import "./landing.css";
 
 const CARDS = [
-  { img: "90bbc065-8dc6-4c04-abc8-9c88c3cfbd8e", glow: true,  tag: "Featured · 90 days", tagFr: "Mis en avant · 90 jours", name: "Lucas · 22",  from: "6.1", to: "8.4" },
-  { img: "41d47a27-1905-4f2f-abce-1b30a1078e40", glow: false, tag: "+2.1",               tagFr: undefined,                name: "Théo · 19",  from: "5.8", to: "7.9" },
-  { img: "346a19c4-5339-4af5-b66f-13a05e751c9d", glow: false, tag: "+3.0",               tagFr: undefined,                name: "Adrien · 24", from: "5.2", to: "8.2" },
+  { img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400", glow: true,  tag: "Featured · 90 days", tagFr: "Mis en avant · 90 jours", name: "Lucas · 22",  from: "6.1", to: "8.4" },
+  { img: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400", glow: false, tag: "+2.1",               tagFr: undefined,                name: "Théo · 19",  from: "5.8", to: "7.9" },
+  { img: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400", glow: false, tag: "+3.0",               tagFr: undefined,                name: "Adrien · 24", from: "5.2", to: "8.2" },
   { img: "91ea5e49-fe65-45a1-80cf-a599adab74de", glow: false, tag: "+1.8",               tagFr: undefined,                name: "Mateo · 17", from: "6.3", to: "8.1" },
   { img: "29d57c82-4e21-4f16-bd04-69f58c41ba26", glow: false, tag: "+2.6",               tagFr: undefined,                name: "Marco · 20", from: "5.9", to: "8.5" },
   { img: "74235975-ab7f-49c1-9633-a7ed9563b07f", glow: false, tag: "+2.4",               tagFr: undefined,                name: "Erik · 21",  from: "5.7", to: "8.1" },
@@ -163,7 +163,8 @@ export default function Home() {
       <nav className="nav">
         <div className="wrap nav-inner">
           <a className="brand" href="#" aria-label="FaceUP">
-            <span className="brand-mark" aria-hidden="true" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/favicon.png" alt="" className="brand-mark" aria-hidden="true" />
             <span>FaceUP</span>
           </a>
 
@@ -307,7 +308,7 @@ export default function Home() {
                   <div className="scan-area">
                     <div className="scan-face">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src="56df77d3-3eae-4b72-b2c5-c392161a551a" alt="" />
+                      <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&q=80" alt="" />
                     </div>
                     <div className="scan-corner tl" />
                     <div className="scan-corner tr" />
@@ -686,7 +687,8 @@ export default function Home() {
           <div className="foot-top">
             <div>
               <a className="brand" href="#" aria-label="FaceUP">
-                <span className="brand-mark" aria-hidden="true" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/favicon.png" alt="" className="brand-mark" aria-hidden="true" />
                 <span>FaceUP</span>
               </a>
               <p className="foot-blurb">
