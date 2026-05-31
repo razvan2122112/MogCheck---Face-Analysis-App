@@ -7,12 +7,12 @@ import { useAuth } from "./context/auth";
 import "./landing.css";
 
 const CARDS = [
-  { img: "/ba-1.png", glow: true,  tag: "Featured · 90 days", tagFr: "Mis en avant · 90 jours", name: "Lucas · 22",  from: "6.1", to: "8.4" },
-  { img: "/ba-2.png", glow: false, tag: "+2.1",               tagFr: undefined,                  name: "Théo · 19",  from: "5.8", to: "7.9" },
-  { img: "/ba-3.png", glow: false, tag: "+3.0",               tagFr: undefined,                  name: "Adrien · 24", from: "5.2", to: "8.2" },
-  { img: "/ba-4.png", glow: false, tag: "+1.8",               tagFr: undefined,                  name: "Mateo · 17", from: "6.3", to: "8.1" },
-  { img: "/ba-5.png", glow: false, tag: "+2.6",               tagFr: undefined,                  name: "Marco · 20", from: "5.9", to: "8.5" },
-  { img: "/ba-6.png", glow: false, tag: "+2.4",               tagFr: undefined,                  name: "Erik · 21",  from: "5.7", to: "8.1" },
+  { img: "https://i.ibb.co/fd4DhggS/ba-1.png", glow: true,  tag: "Featured · 90 days", tagFr: "Mis en avant · 90 jours", name: "Lucas · 22",  from: "6.1", to: "8.4" },
+  { img: "https://i.ibb.co/DH7X8x0J/ba-2.png", glow: false, tag: "+2.1",               tagFr: undefined,                  name: "Théo · 19",  from: "5.8", to: "7.9" },
+  { img: "https://i.ibb.co/wZT3JZ2h/ba-3.png", glow: false, tag: "+3.0",               tagFr: undefined,                  name: "Adrien · 24", from: "5.2", to: "8.2" },
+  { img: "https://i.ibb.co/gFQDCwGZ/ba-4.png", glow: false, tag: "+1.8",               tagFr: undefined,                  name: "Mateo · 17", from: "6.3", to: "8.1" },
+  { img: "https://i.ibb.co/S4QzNb40/ba-5.png", glow: false, tag: "+2.6",               tagFr: undefined,                  name: "Marco · 20", from: "5.9", to: "8.5" },
+  { img: "https://i.ibb.co/wrKYBrKD/ba-6.png", glow: false, tag: "+2.4",               tagFr: undefined,                  name: "Erik · 21",  from: "5.7", to: "8.1" },
 ];
 
 const TOTAL = CARDS.length;
@@ -164,7 +164,7 @@ export default function Home() {
         <div className="wrap nav-inner">
           <a className="brand" href="#" aria-label="FaceUP">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-mask.png" alt="" className="brand-mark" aria-hidden="true" />
+            <img src="https://i.ibb.co/LdPd3hLk/logo-mask.png" alt="" className="brand-mark" aria-hidden="true" />
             <span>FaceUP</span>
           </a>
 
@@ -308,7 +308,7 @@ export default function Home() {
                   <div className="scan-area">
                     <div className="scan-face">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src="/scan-face-real.png" alt="" />
+                      <img src="https://i.ibb.co/VXs1kSd/scan-face-real.png" alt="" />
                     </div>
                     <div className="scan-corner tl" />
                     <div className="scan-corner tr" />
@@ -688,7 +688,7 @@ export default function Home() {
             <div>
               <a className="brand" href="#" aria-label="FaceUP">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-mask.png" alt="" className="brand-mark" aria-hidden="true" />
+            <img src="https://i.ibb.co/LdPd3hLk/logo-mask.png" alt="" className="brand-mark" aria-hidden="true" />
                 <span>FaceUP</span>
               </a>
               <p className="foot-blurb">
