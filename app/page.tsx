@@ -164,7 +164,7 @@ export default function Home() {
         <div className="wrap nav-inner">
           <a className="brand" href="#" aria-label="FaceUP">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/favicon.png" alt="" className="brand-mark" aria-hidden="true" />
+            <img src="/logo-mask.png" alt="" className="brand-mark" aria-hidden="true" />
             <span>FaceUP</span>
           </a>
 
@@ -688,7 +688,7 @@ export default function Home() {
             <div>
               <a className="brand" href="#" aria-label="FaceUP">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/favicon.png" alt="" className="brand-mark" aria-hidden="true" />
+            <img src="/logo-mask.png" alt="" className="brand-mark" aria-hidden="true" />
                 <span>FaceUP</span>
               </a>
               <p className="foot-blurb">
