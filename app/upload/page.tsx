@@ -203,6 +203,33 @@ const STATUS_CFG = {
   locked:    { label: "LOCKED ✓",  color: "#5fd0bf",                border: "rgba(95,208,191,0.3)",  bg: "rgba(95,208,191,0.08)" },
 };
 
+const ANALYSIS_STEPS_EN = [
+  "Face detection...",
+  "Facial symmetry analysis...",
+  "Metrics calculation...",
+  "Potential assessment...",
+  "Generating your program...",
+  "Finalizing...",
+];
+const ANALYSIS_STEPS_FR = [
+  "Détection du visage...",
+  "Analyse de la symétrie faciale...",
+  "Calcul des métriques...",
+  "Évaluation du potentiel...",
+  "Génération de ton programme...",
+  "Finalisation...",
+];
+const ANALYSIS_STEP_THRESHOLDS = [0, 15, 35, 55, 75, 90, 100];
+
+function getAnalysisStepIdx(progress: number): number {
+  if (progress >= 90) return 5;
+  if (progress >= 75) return 4;
+  if (progress >= 55) return 3;
+  if (progress >= 35) return 2;
+  if (progress >= 15) return 1;
+  return 0;
+}
+
 export default function UploadPage() {
   const router = useRouter();
   const { t, lang } = useLang();
@@ -254,6 +281,8 @@ export default function UploadPage() {
   const [loading, setLoading]               = useState(false);
   const [error, setError]                   = useState<string | null>(null);
   const [dailyLimitReached, setDailyLimitReached] = useState<string | null>(null); // holds next_analysis date
+  const [analysisProgress, setAnalysisProgress] = useState(0);
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     return () => {
@@ -261,6 +290,29 @@ export default function UploadPage() {
       streamRef.current?.getTracks().forEach((tr) => tr.stop());
     };
   }, []);
+
+  useEffect(() => {
+    if (loading) {
+      setAnalysisProgress(0);
+      progressTimerRef.current = setInterval(() => {
+        setAnalysisProgress((prev) => {
+          if (prev >= 89) {
+            if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+            return 89;
+          }
+          const remaining = 90 - prev;
+          const increment = Math.max(0.12, remaining * 0.016);
+          return Math.min(89, prev + increment);
+        });
+      }, 50);
+    } else {
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      setAnalysisProgress(0);
+    }
+    return () => {
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    };
+  }, [loading]);
 
   // Capture one frame and advance to next step — stable (only refs + setters)
   const doCapture = useCallback((step: number) => {
@@ -531,6 +583,9 @@ export default function UploadPage() {
         } catch { /* ignore — never block navigation */ }
       }
 
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      setAnalysisProgress(100);
+      await new Promise<void>((r) => setTimeout(r, 700));
       router.push("/results");
     } catch (err) {
       setError(err instanceof Error ? err.message : t.upload.errSomethingWrong);
@@ -910,6 +965,65 @@ export default function UploadPage() {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── ANALYSIS LOADING OVERLAY ─────────────────────────────────────── */}
+      {loading && (
+        <div className="fixed inset-0 z-[200] bg-[#0a0a0a] flex flex-col items-center justify-center px-6">
+          <div className="mb-10 text-2xl font-black tracking-widest gold-text">FaceUP</div>
+
+          <div className="w-full max-w-xs space-y-4 mb-10">
+            {(lang === "fr" ? ANALYSIS_STEPS_FR : ANALYSIS_STEPS_EN).map((label, i) => {
+              const threshold = ANALYSIS_STEP_THRESHOLDS[i + 1] ?? 100;
+              const isCompleted = analysisProgress >= threshold;
+              const isCurrent = getAnalysisStepIdx(analysisProgress) === i;
+              return (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 transition-all duration-500"
+                  style={{ opacity: isCompleted || isCurrent ? 1 : 0.22 }}
+                >
+                  <div
+                    className="w-5 h-5 rounded-full flex items-center justify-center flex-none transition-all duration-300"
+                    style={{
+                      background: isCompleted ? "#5fd0bf" : "transparent",
+                      border: isCompleted ? "none" : isCurrent ? "2px solid #e99846" : "1px solid rgba(255,255,255,0.15)",
+                    }}
+                  >
+                    {isCompleted ? (
+                      <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none" stroke="#0a0a0a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 6l3 3 5-5" />
+                      </svg>
+                    ) : isCurrent ? (
+                      <div className="w-2 h-2 rounded-full bg-[#e99846] animate-pulse" />
+                    ) : null}
+                  </div>
+                  <span
+                    className="text-sm font-mono transition-colors duration-300"
+                    style={{ color: isCompleted ? "#5fd0bf" : isCurrent ? "#ededed" : "rgba(255,255,255,0.3)" }}
+                  >
+                    {label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="w-full max-w-xs">
+            <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-[#e99846] rounded-full"
+                style={{ width: `${analysisProgress}%`, transition: "width 0.3s ease-out" }}
+              />
+            </div>
+            <div className="mt-2 flex justify-between items-center">
+              <span className="text-[10px] font-mono text-white/30">
+                {lang === "fr" ? "Analyse en cours…" : "Analysis in progress…"}
+              </span>
+              <span className="text-[10px] font-mono text-[#e99846]">{Math.round(analysisProgress)}%</span>
+            </div>
+          </div>
         </div>
       )}
     </main>
