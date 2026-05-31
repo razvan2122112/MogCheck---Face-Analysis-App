@@ -8,10 +8,19 @@ import { useAuth } from "../context/auth";
 import { getBrowserClient } from "@/lib/supabase";
 import type { Translations } from "../lib/translations";
 
+interface DetectedFlawProduct {
+  name: string;
+  amazon_search: string;
+}
+
 interface DetectedFlaw {
   flaw: string;
   severity: "mild" | "moderate" | "severe";
-  fix: string;
+  fix?: string;           // legacy fallback
+  protocol?: string;      // new: 1-2 sentence action
+  exercises?: string[];   // new: max 2, flaw-specific
+  products?: DetectedFlawProduct[]; // new: max 3, flaw-specific
+  lifestyle?: string[];   // new: max 2, flaw-specific
 }
 
 interface ImprovementPlan {
@@ -172,48 +181,9 @@ const SEVERITY_STYLES: Record<string, string> = {
   severe: "bg-red-500/10 text-red-400 border border-red-500/20",
 };
 
-// ── Flaw matching helpers ─────────────────────────────────────────────────────
-
-function matchItemsToFlaw(flawName: string, items: string[]): string[] {
-  const words = flawName
-    .toLowerCase()
-    .split(/[\s\-,;.'"()/]+/)
-    .filter((w) => w.length >= 4);
-  if (!words.length) return [];
-  return items.filter((item) =>
-    words.some((w) => item.toLowerCase().includes(w))
-  );
-}
-
-function matchProductsToFlaw(
-  flawName: string,
-  products: RecommendedProduct[]
-): RecommendedProduct[] {
-  const words = flawName
-    .toLowerCase()
-    .split(/[\s\-,;.'"()/]+/)
-    .filter((w) => w.length >= 4);
-  if (!words.length) return [];
-  return products.filter((p) =>
-    words.some((w) =>
-      (p.reason + " " + p.product + " " + p.usage).toLowerCase().includes(w)
-    )
-  );
-}
-
 // ── Flaw Card (expandable) ────────────────────────────────────────────────────
 
-function FlawCard({
-  flaw,
-  plan,
-  products,
-  index,
-}: {
-  flaw: DetectedFlaw;
-  plan?: ImprovementPlan;
-  products?: RecommendedProduct[];
-  index: number;
-}) {
+function FlawCard({ flaw, index }: { flaw: DetectedFlaw; index: number }) {
   const [open, setOpen] = useState(false);
 
   const borderColor =
@@ -223,12 +193,7 @@ function FlawCard({
       ? "rgba(251,146,60,0.15)"
       : "rgba(250,204,21,0.12)";
 
-  const exercises = plan ? matchItemsToFlaw(flaw.flaw, plan.exercises ?? []) : [];
-  const skincareItems = plan
-    ? matchItemsToFlaw(flaw.flaw, [...(plan.skincare ?? []), ...(plan.grooming ?? [])])
-    : [];
-  const lifestyle = plan ? matchItemsToFlaw(flaw.flaw, plan.lifestyle ?? []) : [];
-  const matched = products ? matchProductsToFlaw(flaw.flaw, products) : [];
+  const protocolText = flaw.protocol ?? flaw.fix ?? "";
 
   return (
     <div
@@ -274,21 +239,23 @@ function FlawCard({
           style={{ borderColor }}
         >
           {/* 📋 Protocole */}
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/25 mb-2">
-              📋 Protocole
-            </p>
-            <p className="text-sm text-white/65 leading-relaxed">{flaw.fix}</p>
-          </div>
+          {protocolText && (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/25 mb-2">
+                📋 Protocole
+              </p>
+              <p className="text-sm text-white/65 leading-relaxed">{protocolText}</p>
+            </div>
+          )}
 
           {/* 💪 Exercices */}
-          {exercises.length > 0 && (
+          {flaw.exercises && flaw.exercises.length > 0 && (
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-[#4ade80]/55 mb-2">
                 💪 Exercices
               </p>
               <ul className="flex flex-col gap-1.5">
-                {exercises.map((ex, i) => (
+                {flaw.exercises.map((ex, i) => (
                   <li key={i} className="flex items-start gap-2 text-xs text-white/55 leading-relaxed">
                     <span className="mt-1.5 w-1 h-1 rounded-full bg-[#4ade80]/40 flex-shrink-0" />
                     {ex}
@@ -299,31 +266,15 @@ function FlawCard({
           )}
 
           {/* 🛍️ Produits */}
-          {(matched.length > 0 || skincareItems.length > 0) && (
+          {flaw.products && flaw.products.length > 0 && (
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-[#e99846]/55 mb-2">
                 🛍️ Produits
               </p>
               <div className="flex flex-col gap-2">
-                {skincareItems.map((item, i) => (
-                  <div key={`s${i}`} className="flex items-center justify-between gap-2">
-                    <span className="text-xs text-white/55 leading-relaxed flex-1 min-w-0">{item}</span>
-                    <a
-                      href={`https://www.amazon.fr/s?k=${encodeURIComponent(item)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-none text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#e99846]/30 text-[#e99846] hover:bg-[#e99846]/10 transition-colors whitespace-nowrap"
-                    >
-                      Amazon →
-                    </a>
-                  </div>
-                ))}
-                {matched.map((p, i) => (
-                  <div key={`p${i}`} className="flex items-center justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-white/70 leading-snug">{p.product}</p>
-                      <p className="text-[10px] text-white/30">{p.brand}</p>
-                    </div>
+                {flaw.products.map((p, i) => (
+                  <div key={i} className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-white/60 leading-relaxed flex-1 min-w-0">{p.name}</span>
                     <a
                       href={`https://www.amazon.fr/s?k=${encodeURIComponent(p.amazon_search)}`}
                       target="_blank"
@@ -339,13 +290,13 @@ function FlawCard({
           )}
 
           {/* 🌙 Mode de vie */}
-          {lifestyle.length > 0 && (
+          {flaw.lifestyle && flaw.lifestyle.length > 0 && (
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-[#a78bfa]/55 mb-2">
                 🌙 Mode de vie
               </p>
               <ul className="flex flex-col gap-1.5">
-                {lifestyle.map((item, i) => (
+                {flaw.lifestyle.map((item, i) => (
                   <li key={i} className="flex items-start gap-2 text-xs text-white/55 leading-relaxed">
                     <span className="mt-1.5 w-1 h-1 rounded-full bg-[#a78bfa]/40 flex-shrink-0" />
                     {item}
@@ -1628,13 +1579,7 @@ export default function ResultsPage() {
               </div>
               <div className="flex flex-col gap-2">
                 {results.detected_flaws.map((flaw, i) => (
-                  <FlawCard
-                    key={i}
-                    flaw={flaw}
-                    plan={results.improvement_plan}
-                    products={results.recommended_products ?? undefined}
-                    index={i}
-                  />
+                  <FlawCard key={i} flaw={flaw} index={i} />
                 ))}
               </div>
             </div>

@@ -20,7 +20,16 @@ JSON schema:
   "overall_score": <number 0-10>,
   "looksmax_rating": <string>,
   "detected_flaws": [
-    { "flaw": <string>, "severity": <"mild"|"moderate"|"severe">, "fix": <string> }
+    {
+      "flaw": "<short name, 2-5 words>",
+      "severity": "<mild|moderate|severe>",
+      "protocol": "<1-2 sentences — concrete immediate action specific to THIS flaw only>",
+      "exercises": ["<exercise specific to this flaw only, with sets/reps if applicable>"],
+      "products": [
+        { "name": "<exact product name>", "amazon_search": "<amazon search term>" }
+      ],
+      "lifestyle": ["<habit specific to this flaw only>"]
+    }
   ],
   "improvements": [<string>, ...],
   "improvement_plan": {
@@ -110,22 +119,35 @@ Scoring guidelines:
 
 looksmax_rating (choose most accurate): "Subhuman", "Incel Tier", "Below Average", "Average", "Above Average", "High Tier", "Very High Tier", "Chad", "GigaChad"
 
-Flaw detection — identify any present and add others observed:
+Flaw detection — detect up to 6 flaws maximum. For each flaw you must populate ALL 4 sub-fields with STRICT per-flaw specificity:
+
+Detectable flaws (pick those actually visible):
 - Bloated/puffy face (water retention, high body fat)
 - Weak/recessed chin or underdeveloped jaw
 - Hooded or droopy eyelids
 - Negative canthal tilt (submissive eye shape)
 - Dark under-eye circles or deep tear troughs
-- Recessed maxilla (flat midface, midface hypoplasia)
+- Recessed maxilla (flat midface)
 - Long midface / high philtrum
 - Acne, acne scarring, or poor skin texture
 - Large or bulbous nose tip
-- Narrow or wide face (suboptimal facial width-to-height ratio)
-- Facial asymmetry (eyes, nose, lips, jaw unevenness)
+- Facial asymmetry
 - Sparse or ungroomed eyebrows
 - Double chin or poor neck-jaw definition
-- Poor posture affecting jaw appearance
+- Poor posture / forward head
 - Premature aging (fine lines, skin laxity)
+
+Per-flaw field rules:
+- protocol: 1-2 sentences max, concrete action specific to THIS flaw ONLY.
+- exercises (max 2): ONLY exercises that physically address this specific flaw.
+  Examples: jaw flaw → mastic gum + mewing. Posture flaw → chin tucks + neck bridges. Skin flaw → []. Eye flaw → []. Eyebrow flaw → [].
+- products (max 3): ONLY purchasable products for this flaw with exact name + amazon_search.
+  Examples: acne → BHA exfoliant, niacinamide serum, tretinoin. Eyebrows → brow pencil, brow pomade. Dark circles → caffeine eye cream. Jaw → jawzrsize, mastic gum.
+  NEVER include haircuts, consultations, or non-buyable services as products.
+- lifestyle (max 2): ONLY habits that directly impact this specific flaw.
+  Examples: water retention → low-sodium diet, dandelion root tea. Dark circles → 8h sleep + elevated pillow. Acne → change pillowcase every 2 days, avoid touching face.
+
+STRICT NO-REPETITION RULE: Each exercise, product, and lifestyle habit must appear in EXACTLY ONE flaw card. If mewing is assigned to "faible mâchoire", it must NOT appear in "rétention d'eau" or any other flaw. Allocate each item to the single most relevant flaw and never duplicate it.
 
 improvement_plan — be highly specific:
 - skincare: Name exact products with key ingredients tailored to their detected skin issues (e.g., "Tretinoin 0.025% cream — accelerates cell turnover, reduces acne marks and early aging", "Paula's Choice 2% BHA — unclogs pores and smooths texture", "Cerave Moisturizing Cream — restores barrier for dry/irritated skin"). Give 4-6 recommendations.
