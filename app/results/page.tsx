@@ -13,14 +13,23 @@ interface DetectedFlawProduct {
   amazon_search: string;
 }
 
+interface DetectedFlawSupplement {
+  name: string;
+  dose: string;
+  amazon_search: string;
+}
+
 interface DetectedFlaw {
   flaw: string;
   severity: "mild" | "moderate" | "severe";
-  fix?: string;           // legacy fallback
-  protocol?: string;      // new: 1-2 sentence action
-  exercises?: string[];   // new: max 2, flaw-specific
-  products?: DetectedFlawProduct[]; // new: max 3, flaw-specific
-  lifestyle?: string[];   // new: max 2, flaw-specific
+  fix?: string;                          // legacy fallback
+  protocol?: string;
+  exercises?: string[];
+  products?: DetectedFlawProduct[];
+  grooming?: DetectedFlawProduct[];
+  supplements?: DetectedFlawSupplement[];
+  lifestyle?: string[];
+  non_surgical?: string[];
 }
 
 interface ImprovementPlan {
@@ -299,6 +308,76 @@ function FlawCard({ flaw, index }: { flaw: DetectedFlaw; index: number }) {
                 {flaw.lifestyle.map((item, i) => (
                   <li key={i} className="flex items-start gap-2 text-xs text-white/55 leading-relaxed">
                     <span className="mt-1.5 w-1 h-1 rounded-full bg-[#a78bfa]/40 flex-shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* ✂️ Grooming */}
+          {flaw.grooming && flaw.grooming.length > 0 && (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#5fd0bf]/55 mb-2">
+                ✂️ Grooming
+              </p>
+              <div className="flex flex-col gap-2">
+                {flaw.grooming.map((p, i) => (
+                  <div key={i} className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-white/60 leading-relaxed flex-1 min-w-0">{p.name}</span>
+                    <a
+                      href={`https://www.amazon.fr/s?k=${encodeURIComponent(p.amazon_search)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-none text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#5fd0bf]/30 text-[#5fd0bf] hover:bg-[#5fd0bf]/10 transition-colors whitespace-nowrap"
+                    >
+                      Amazon →
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 💊 Suppléments */}
+          {flaw.supplements && flaw.supplements.length > 0 && (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#4ade80]/55 mb-2">
+                💊 Suppléments
+              </p>
+              <div className="flex flex-col gap-2">
+                {flaw.supplements.map((s, i) => (
+                  <div key={i} className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="text-xs text-white/60 leading-snug">{s.name}</span>
+                      <span className="text-[10px] font-mono text-[#4ade80]/60 border border-[#4ade80]/20 px-1.5 py-0.5 rounded-full flex-none">
+                        {s.dose}
+                      </span>
+                    </div>
+                    <a
+                      href={`https://www.amazon.fr/s?k=${encodeURIComponent(s.amazon_search)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-none text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#4ade80]/30 text-[#4ade80] hover:bg-[#4ade80]/10 transition-colors whitespace-nowrap"
+                    >
+                      Amazon →
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 💉 Esthétique non-chirurgicale */}
+          {flaw.non_surgical && flaw.non_surgical.length > 0 && (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#f472b6]/55 mb-2">
+                💉 Non-chirurgical
+              </p>
+              <ul className="flex flex-col gap-1.5">
+                {flaw.non_surgical.map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-white/55 leading-relaxed">
+                    <span className="mt-1.5 w-1 h-1 rounded-full bg-[#f472b6]/40 flex-shrink-0" />
                     {item}
                   </li>
                 ))}

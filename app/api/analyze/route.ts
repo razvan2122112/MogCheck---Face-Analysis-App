@@ -24,13 +24,15 @@ JSON schema:
       "flaw": "<short name, 2-5 words>",
       "severity": "<mild|moderate|severe>",
       "protocol": "<1-2 sentences — concrete immediate action specific to THIS flaw only>",
-      "exercises": ["<exercise specific to this flaw only, with sets/reps if applicable>"],
-      "products": [
-        { "name": "<exact product name>", "amazon_search": "<amazon search term>" }
-      ],
-      "lifestyle": ["<habit specific to this flaw only>"]
+      "exercises": ["<exercise specific to this flaw only, with sets/reps>"],
+      "products": [{ "name": "<exact product name>", "amazon_search": "<search term>" }],
+      "grooming": [{ "name": "<grooming product e.g. Layrite Cement, matte clay, beard oil, brow gel, trimmer>", "amazon_search": "<search term>" }],
+      "supplements": [{ "name": "<supplement e.g. Zinc, Collagen, Biotin, Magnesium, Creatine>", "dose": "<exact dose e.g. 30mg/jour>", "amazon_search": "<search term>" }],
+      "lifestyle": ["<habit specific to this flaw only>"],
+      "non_surgical": ["<procedure e.g. filler, botox massétérien, skinbooster — ONLY include this array if overall_score < 6, otherwise omit entirely>"]
     }
   ],
+  (HARD LIMIT: detected_flaws array must contain AT MOST 6 entries. Stop after 6.)
   "improvements": [<string>, ...],
   "improvement_plan": {
     "skincare": [<string>, ...],
@@ -119,7 +121,7 @@ Scoring guidelines:
 
 looksmax_rating (choose most accurate): "Subhuman", "Incel Tier", "Below Average", "Average", "Above Average", "High Tier", "Very High Tier", "Chad", "GigaChad"
 
-Flaw detection — detect up to 6 flaws maximum. For each flaw you must populate ALL 4 sub-fields with STRICT per-flaw specificity:
+Flaw detection — MAXIMUM 6 FLAWS. Count your flaws — if you reach 6, STOP. Do NOT add a 7th entry. Pick the 6 most impactful visible flaws only.
 
 Detectable flaws (pick those actually visible):
 - Bloated/puffy face (water retention, high body fat)
@@ -137,17 +139,23 @@ Detectable flaws (pick those actually visible):
 - Poor posture / forward head
 - Premature aging (fine lines, skin laxity)
 
-Per-flaw field rules:
-- protocol: 1-2 sentences max, concrete action specific to THIS flaw ONLY.
-- exercises (max 2): ONLY exercises that physically address this specific flaw.
-  Examples: jaw flaw → mastic gum + mewing. Posture flaw → chin tucks + neck bridges. Skin flaw → []. Eye flaw → []. Eyebrow flaw → [].
-- products (max 3): ONLY purchasable products for this flaw with exact name + amazon_search.
-  Examples: acne → BHA exfoliant, niacinamide serum, tretinoin. Eyebrows → brow pencil, brow pomade. Dark circles → caffeine eye cream. Jaw → jawzrsize, mastic gum.
-  NEVER include haircuts, consultations, or non-buyable services as products.
-- lifestyle (max 2): ONLY habits that directly impact this specific flaw.
-  Examples: water retention → low-sodium diet, dandelion root tea. Dark circles → 8h sleep + elevated pillow. Acne → change pillowcase every 2 days, avoid touching face.
+Per-flaw field rules (populate ALL fields for every flaw):
+- protocol: 1-2 sentences max. Concrete action for THIS flaw ONLY.
+- exercises (max 2): physical exercises that directly target this flaw.
+  Jaw flaw → mastic gum 20min/day + mewing 2h/day. Posture flaw → chin tucks 3×15 + neck bridges 3×10. Skin/eye/brow/water retention flaws → [] (no exercises).
+- products (max 3): topical or mechanical products specific to this flaw. Name + amazon_search.
+  Acne → Paula's Choice 2% BHA, The Ordinary Niacinamide, Tretinoin 0.025%. Dark circles → Caffeine Eye Cream, Vitamin K Eye Serum. Jaw → Jawzrsize, Mastic Gum.
+  DO NOT include haircuts or services.
+- grooming (max 2): hair/styling/beard products relevant to this flaw. Name + amazon_search.
+  Hair thinning → Layrite Cement Clay, Sea Salt Spray. Beard/jaw → beard oil, precision trimmer. Brow flaw → brow pencil, brow pomade. NOT relevant for skin or posture flaws → [].
+- supplements (max 2): supplements that address this specific flaw. Name + dose + amazon_search.
+  Acne → Zinc 30mg/jour. Skin aging → Collagen peptides 10g/jour. Hair loss → Biotin 5000mcg/jour. Water retention → Magnesium glycinate 400mg/soir. Energy/jaw → Creatine 5g/jour.
+- lifestyle (max 2): habits specifically targeting this flaw.
+  Water retention → low-sodium diet, dandelion root tea. Dark circles → 8h sleep + elevated pillow. Acne → change pillowcase every 2 days, no touching face.
+- non_surgical: ONLY include this field if overall_score < 6.0. Leave it out entirely if score ≥ 6.
+  Jaw/chin → botox massétérien for slimming OR jawline filler. Skin → skinbooster Juvederm Volite. Eye hollow → tear trough filler. Max 2 procedures per flaw. If score ≥ 6, do NOT include non_surgical at all.
 
-STRICT NO-REPETITION RULE: Each exercise, product, and lifestyle habit must appear in EXACTLY ONE flaw card. If mewing is assigned to "faible mâchoire", it must NOT appear in "rétention d'eau" or any other flaw. Allocate each item to the single most relevant flaw and never duplicate it.
+STRICT NO-REPETITION RULE: Each item (exercise, product, supplement, lifestyle habit) appears in EXACTLY ONE flaw. If mewing → "faible mâchoire", it must NOT appear elsewhere. Allocate each item to its single most relevant flaw.
 
 improvement_plan — be highly specific:
 - skincare: Name exact products with key ingredients tailored to their detected skin issues (e.g., "Tretinoin 0.025% cream — accelerates cell turnover, reduces acne marks and early aging", "Paula's Choice 2% BHA — unclogs pores and smooths texture", "Cerave Moisturizing Cream — restores barrier for dry/irritated skin"). Give 4-6 recommendations.
@@ -225,7 +233,7 @@ CRITICAL: You MUST respond with ONLY a valid JSON object. No markdown, no \`\`\`
 
 const FRENCH_SUFFIX = `
 
-LANGUAGE REQUIREMENT: All string values in the JSON response MUST be written in French. This includes: every "flaw" name, every "fix" description, every string in "improvements", every string in "improvement_plan" (skincare, exercises, lifestyle, grooming), the "summary", the "perfect_version", all strings in "daily_program" (morning actions, evening actions, exercise descriptions), and all strings in "recommended_products" (reason, usage). Keep the "severity" field values as-is ("mild", "moderate", "severe"), the "looksmax_rating" value in English, and the "product", "brand", and "amazon_search" fields in their original language (product names and search terms must remain in English for Amazon). Every other human-readable text must be in French.`;
+LANGUAGE REQUIREMENT: All string values in the JSON response MUST be written in French. This includes: every "flaw" name, every "protocol" text, every "exercises" item, every "lifestyle" item, every "non_surgical" item, every string in "improvements", every string in "improvement_plan" (skincare, exercises, lifestyle, grooming), the "summary", the "perfect_version", all strings in "daily_program" (morning actions, evening actions, exercise descriptions), and all strings in "recommended_products" (reason, usage). Keep the "severity" field values as-is ("mild", "moderate", "severe") and the "looksmax_rating" value in English. Keep all product/brand/amazon_search fields in English (product names and search terms must remain in English for Amazon to work). The "supplements[].dose" field should stay in international notation (e.g. "30mg/jour"). Every other human-readable text must be in French.`;
 
 interface LandmarkMetrics {
   symmetry: number;
@@ -366,6 +374,10 @@ export async function POST(req: NextRequest) {
     let result: Record<string, unknown>;
     try {
       result = JSON.parse(jsonStr);
+      // Hard cap: never return more than 6 flaws regardless of what Claude generates
+      if (Array.isArray(result.detected_flaws)) {
+        result.detected_flaws = (result.detected_flaws as unknown[]).slice(0, 6);
+      }
       console.log("Claude response keys:", Object.keys(result));
       console.log("HAS DAILY:", !!result.daily_program);
       console.log("HAS PRODUCTS:", !!result.recommended_products);
