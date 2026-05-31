@@ -271,13 +271,12 @@
 @media (max-width:768px){
   /* Clip anything that overflows the hero */
   .landing-pg .hero{overflow:hidden}
-  /* Phones container: centered column, capped at 90vw */
+  /* Phones container: centered column, capped at 90vw — no overflow:hidden so rotations aren't clipped */
   .landing-pg .phones{
     min-height:400px;
     max-width:90vw;
     margin-left:auto;
     margin-right:auto;
-    overflow:hidden;
   }
   /* Smaller frames */
   .landing-pg .phone{width:185px;border-radius:30px}
