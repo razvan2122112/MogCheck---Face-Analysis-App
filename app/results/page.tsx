@@ -484,29 +484,27 @@ const WR_LEVEL: Record<string, { label: string; color: string; bg: string; borde
   severe:   { label: "Sévère",   color: "#f87171", bg: "rgba(248,113,113,0.05)", border: "rgba(248,113,113,0.2)", pct: 95 },
 };
 
-function WaterRetentionSection({ wr, bft }: { wr: WaterRetention; bft?: BodyFatTarget }) {
+function WaterRetentionSection({ wr }: { wr: WaterRetention }) {
   const cfg = WR_LEVEL[wr.level] ?? WR_LEVEL.mild;
   return (
     <div className="mb-8 fade-up" style={{ animationDelay: "820ms", animationFillMode: "both" }}>
       <div className="mb-5">
-        <p className="text-xs uppercase tracking-[0.3em] text-[#60a5fa] mb-1 font-semibold">Composition faciale</p>
-        <h2 className="text-2xl font-black">Rétention d&apos;eau &amp; Body Fat</h2>
+        <p className="text-xs uppercase tracking-[0.3em] text-[#60a5fa] mb-1 font-semibold">Inflammation faciale</p>
+        <h2 className="text-2xl font-black">Rétention d&apos;eau</h2>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Water retention card */}
-        <div className="rounded-2xl border p-5" style={{ borderColor: cfg.border, background: cfg.bg }}>
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: cfg.color }}>Rétention d&apos;eau</span>
-            <span className="text-sm font-black" style={{ color: cfg.color }}>{cfg.label}</span>
-          </div>
-          {/* Level bar */}
-          <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden mb-4">
-            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${cfg.pct}%`, background: cfg.color }} />
-          </div>
+      <div className="rounded-2xl border p-5" style={{ borderColor: cfg.border, background: cfg.bg }}>
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-xs font-bold uppercase tracking-widest" style={{ color: cfg.color }}>Niveau détecté</span>
+          <span className="text-sm font-black" style={{ color: cfg.color }}>{cfg.label}</span>
+        </div>
+        <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden mb-5">
+          <div className="h-full rounded-full transition-all duration-700" style={{ width: `${cfg.pct}%`, background: cfg.color }} />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {wr.causes?.length > 0 && (
-            <div className="mb-3">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-white/30 mb-1.5">Causes</p>
-              <ul className="flex flex-col gap-1">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/30 mb-2">Causes</p>
+              <ul className="flex flex-col gap-1.5">
                 {wr.causes.map((c, i) => (
                   <li key={i} className="flex gap-1.5 text-xs text-white/55 leading-snug">
                     <span style={{ color: cfg.color }} className="flex-none mt-0.5">›</span>{c}
@@ -517,8 +515,8 @@ function WaterRetentionSection({ wr, bft }: { wr: WaterRetention; bft?: BodyFatT
           )}
           {wr.solutions?.length > 0 && (
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-white/30 mb-1.5">Solutions</p>
-              <ul className="flex flex-col gap-1">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/30 mb-2">Solutions</p>
+              <ul className="flex flex-col gap-1.5">
                 {wr.solutions.map((s, i) => (
                   <li key={i} className="flex gap-1.5 text-xs text-white/55 leading-snug">
                     <span className="text-[#4ade80] flex-none mt-0.5">✓</span>{s}
@@ -528,26 +526,41 @@ function WaterRetentionSection({ wr, bft }: { wr: WaterRetention; bft?: BodyFatT
             </div>
           )}
         </div>
-        {/* Body fat target card */}
-        {bft && (
-          <div className="rounded-2xl border border-[#60a5fa]/20 bg-[#60a5fa]/[0.02] p-5">
-            <span className="text-xs font-bold uppercase tracking-widest text-[#60a5fa]/70">Body Fat Facial</span>
-            <div className="flex items-end gap-3 my-4">
-              <div className="text-center">
-                <p className="text-[10px] text-white/30 mb-1">Actuel</p>
-                <p className="text-2xl font-black text-white/70">{bft.current_estimate}</p>
-              </div>
-              <svg className="w-5 h-5 text-[#60a5fa]/50 mb-1 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-              </svg>
-              <div className="text-center">
-                <p className="text-[10px] text-white/30 mb-1">Objectif</p>
-                <p className="text-2xl font-black text-[#60a5fa]">{bft.target}</p>
-              </div>
-            </div>
-            <p className="text-xs text-white/50 leading-relaxed">{bft.impact_on_face}</p>
+      </div>
+    </div>
+  );
+}
+
+// ── Body Fat Target Section ───────────────────────────────────────────────────
+
+function BodyFatSection({ bft }: { bft: BodyFatTarget }) {
+  return (
+    <div className="mb-8 fade-up" style={{ animationDelay: "860ms", animationFillMode: "both" }}>
+      <div className="mb-5">
+        <p className="text-xs uppercase tracking-[0.3em] text-[#60a5fa] mb-1 font-semibold">Composition corporelle</p>
+        <h2 className="text-2xl font-black">Body Fat Objectif</h2>
+      </div>
+      <div className="rounded-2xl border border-[#60a5fa]/20 bg-[#60a5fa]/[0.02] p-5">
+        <div className="flex items-center gap-6 mb-4">
+          <div className="text-center">
+            <p className="text-[10px] text-white/30 mb-1 uppercase tracking-wider">Actuel estimé</p>
+            <p className="text-3xl font-black text-white/70">{bft.current_estimate}</p>
           </div>
-        )}
+          <div className="flex-1 flex items-center gap-2">
+            <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-[#60a5fa]/50" />
+            <svg className="w-5 h-5 text-[#60a5fa] flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+            </svg>
+          </div>
+          <div className="text-center">
+            <p className="text-[10px] text-[#60a5fa]/60 mb-1 uppercase tracking-wider">Objectif</p>
+            <p className="text-3xl font-black text-[#60a5fa]">{bft.target}</p>
+          </div>
+        </div>
+        <div className="pt-4 border-t border-white/[0.05]">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-white/30 mb-2">Impact sur le visage</p>
+          <p className="text-sm text-white/60 leading-relaxed">{bft.impact_on_face}</p>
+        </div>
       </div>
     </div>
   );
@@ -1479,9 +1492,6 @@ export default function ResultsPage() {
             </div>
           </div>
 
-          {/* Analyse par zone */}
-          {results.facial_details && <FacialDetailsSection details={results.facial_details} />}
-
           {/* Detected Flaws */}
           {results.detected_flaws && results.detected_flaws.length > 0 && (
             <div
@@ -1531,21 +1541,27 @@ export default function ResultsPage() {
             </div>
           )}
 
-          {/* Skincare Routine matin/soir */}
-          {results.skincare && <SkincareRoutineSection skincare={results.skincare} />}
-
           {/* Suppléments */}
           {results.supplements && results.supplements.length > 0 && (
             <SupplementsSection supplements={results.supplements} />
           )}
 
-          {/* Rétention d'eau + body fat */}
+          {/* Skincare Routine matin/soir */}
+          {results.skincare && <SkincareRoutineSection skincare={results.skincare} />}
+
+          {/* Rétention d'eau */}
           {results.water_retention && (
-            <WaterRetentionSection wr={results.water_retention} bft={results.body_fat_target} />
+            <WaterRetentionSection wr={results.water_retention} />
           )}
 
           {/* Mewing */}
           {results.mewing && <MewingSection mewing={results.mewing} />}
+
+          {/* Body fat objectif */}
+          {results.body_fat_target && <BodyFatSection bft={results.body_fat_target} />}
+
+          {/* Analyse par zone */}
+          {results.facial_details && <FacialDetailsSection details={results.facial_details} />}
 
           {/* Sleep protocol */}
           {results.sleep_protocol && <SleepProtocolSection sleep={results.sleep_protocol} />}
