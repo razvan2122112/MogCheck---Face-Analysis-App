@@ -178,12 +178,14 @@ function PlanSection({
   items,
   accentColor,
   delay,
+  withAmazon = false,
 }: {
   icon: string;
   title: string;
   items: string[];
   accentColor: string;
   delay: number;
+  withAmazon?: boolean;
 }) {
   return (
     <div
@@ -212,13 +214,26 @@ function PlanSection({
         {items.map((item, i) => (
           <li
             key={i}
-            className="flex items-start gap-2 text-sm text-white/60 leading-relaxed"
+            className="flex items-start justify-between gap-2 text-sm text-white/60 leading-relaxed"
           >
-            <span
-              className="mt-1.5 w-1 h-1 rounded-full flex-shrink-0"
-              style={{ background: accentColor }}
-            />
-            {item}
+            <div className="flex items-start gap-2 min-w-0 flex-1">
+              <span
+                className="mt-1.5 w-1 h-1 rounded-full flex-shrink-0"
+                style={{ background: accentColor }}
+              />
+              <span>{item}</span>
+            </div>
+            {withAmazon && (
+              <a
+                href={`https://www.amazon.fr/s?k=${encodeURIComponent(item)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-none text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap transition-colors"
+                style={{ borderColor: `${accentColor}40`, color: accentColor }}
+              >
+                Amazon →
+              </a>
+            )}
           </li>
         ))}
       </ul>
@@ -1364,10 +1379,10 @@ export default function ResultsPage() {
 
   const planSections = results.improvement_plan
     ? [
-        { icon: "🧴", title: t.results.plan.skincare, items: results.improvement_plan.skincare, accentColor: "#60a5fa", delay: 800 },
+        { icon: "🧴", title: t.results.plan.skincare, items: results.improvement_plan.skincare, accentColor: "#60a5fa", delay: 800, withAmazon: true },
         { icon: "💪", title: t.results.plan.exercises, items: results.improvement_plan.exercises, accentColor: "#4ade80", delay: 900 },
         { icon: "🌙", title: t.results.plan.lifestyle, items: results.improvement_plan.lifestyle, accentColor: "#a78bfa", delay: 1000 },
-        { icon: "✂️", title: t.results.plan.grooming, items: results.improvement_plan.grooming, accentColor: "#e99846", delay: 1100 },
+        { icon: "✂️", title: t.results.plan.grooming, items: results.improvement_plan.grooming, accentColor: "#e99846", delay: 1100, withAmazon: true },
       ]
     : [];
 
