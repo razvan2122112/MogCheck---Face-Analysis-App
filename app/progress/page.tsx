@@ -14,6 +14,14 @@ import {
 } from "recharts";
 import { getBrowserClient } from "@/lib/supabase";
 import { useAuth } from "../context/auth";
+import { useLang } from "../context/language";
+
+interface DayProgram {
+  day: number;
+  morning: string[];
+  evening: string[];
+  exercise: string;
+}
 
 interface Analysis {
   id: string;
@@ -69,13 +77,42 @@ function MockChart() {
 
 export default function ProgressPage() {
   const { user, authLoading, signOut } = useAuth();
+  const { lang } = useLang();
   const router = useRouter();
   const [analyses, setAnalyses] = useState<Analysis[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [programGenerating, setProgramGenerating] = useState(false);
+  const [programError, setProgramError] = useState<string | null>(null);
 
   const handleSignOut = async () => {
     await signOut();
     router.push("/");
+  };
+
+  const handleGenerateProgram = async (analysisId: string) => {
+    setProgramGenerating(true);
+    setProgramError(null);
+    try {
+      const res = await fetch("/api/generate-program", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ analysisId, lang }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Erreur lors de la génération");
+      // Merge daily_program into the local analyses state
+      setAnalyses(prev =>
+        prev.map(a =>
+          a.id === analysisId
+            ? { ...a, results: { ...(a.results ?? {}), daily_program: data.daily_program } }
+            : a
+        )
+      );
+    } catch (err) {
+      setProgramError(err instanceof Error ? err.message : "Erreur inconnue");
+    } finally {
+      setProgramGenerating(false);
+    }
   };
 
   useEffect(() => {
@@ -408,6 +445,115 @@ export default function ProgressPage() {
                     />
                   </div>
                 </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── programme 7 jours personnalisé ────────────────────────────── */}
+        {(() => {
+          const dailyProgram = (latest.results?.daily_program as DayProgram[] | undefined) ?? null;
+
+          if (!dailyProgram) {
+            return (
+              <div className="mb-8">
+                <h2 className="text-xs font-bold text-white/40 uppercase tracking-[0.2em] mb-4">Programme 7 Jours IA</h2>
+                <div className="rounded-2xl border border-dashed border-[#e99846]/25 bg-[#e99846]/[0.02] p-6 flex flex-col items-center gap-4 text-center">
+                  <div className="text-3xl">🗓</div>
+                  <div>
+                    <p className="text-sm font-bold text-white/80 mb-1">
+                      {lang === "fr" ? "Ton programme personnalisé" : "Your personalised program"}
+                    </p>
+                    <p className="text-xs text-white/35 max-w-xs mx-auto leading-relaxed">
+                      {lang === "fr"
+                        ? "Génère un programme quotidien 7 jours taillé sur tes défauts spécifiques."
+                        : "Generate a 7-day daily plan built around your specific detected flaws."}
+                    </p>
+                  </div>
+                  {programError && (
+                    <p className="text-xs text-red-400">{programError}</p>
+                  )}
+                  <button
+                    onClick={() => handleGenerateProgram(latest.id)}
+                    disabled={programGenerating}
+                    className="flex items-center gap-2 px-6 py-3 rounded-full font-bold text-sm bg-[#e99846] text-[#0a0a0a] hover:bg-[#f0b060] transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  >
+                    {programGenerating ? (
+                      <>
+                        <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z" />
+                        </svg>
+                        {lang === "fr" ? "Génération en cours…" : "Generating…"}
+                      </>
+                    ) : (
+                      lang === "fr" ? "✨ Générer mon programme" : "✨ Generate my program"
+                    )}
+                  </button>
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div className="mb-8">
+              <h2 className="text-xs font-bold text-white/40 uppercase tracking-[0.2em] mb-4">Programme 7 Jours IA</h2>
+              <div className="flex flex-col gap-3">
+                {dailyProgram.map((day) => (
+                  <div key={day.day} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+                    <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b border-white/[0.04]">
+                      <div className="w-7 h-7 rounded-full bg-[#e99846]/15 border border-[#e99846]/30 flex items-center justify-center flex-none">
+                        <span className="text-[11px] font-black text-[#e99846]">{day.day}</span>
+                      </div>
+                      <span className="text-xs font-bold text-white/50 uppercase tracking-widest">
+                        {lang === "fr" ? `Jour ${day.day}` : `Day ${day.day}`}
+                      </span>
+                    </div>
+                    <div className="divide-y divide-white/[0.04]">
+                      {day.morning.length > 0 && (
+                        <div className="px-4 py-3">
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-[#e99846]/50 mb-1.5">
+                            {lang === "fr" ? "Matin" : "Morning"}
+                          </p>
+                          <ul className="flex flex-col gap-1">
+                            {day.morning.map((a, i) => (
+                              <li key={i} className="text-xs text-white/65 leading-relaxed flex gap-2">
+                                <span className="text-[#e99846]/40 flex-none">›</span>
+                                {a}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {day.exercise && (
+                        <div className="px-4 py-3">
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-[#5fd0bf]/50 mb-1.5">
+                            {lang === "fr" ? "Exercice" : "Exercise"}
+                          </p>
+                          <p className="text-xs text-white/65 leading-relaxed flex gap-2">
+                            <span className="text-[#5fd0bf]/40 flex-none">›</span>
+                            {day.exercise}
+                          </p>
+                        </div>
+                      )}
+                      {day.evening.length > 0 && (
+                        <div className="px-4 py-3">
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-white/25 mb-1.5">
+                            {lang === "fr" ? "Soir" : "Evening"}
+                          </p>
+                          <ul className="flex flex-col gap-1">
+                            {day.evening.map((a, i) => (
+                              <li key={i} className="text-xs text-white/65 leading-relaxed flex gap-2">
+                                <span className="text-white/20 flex-none">›</span>
+                                {a}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           );
