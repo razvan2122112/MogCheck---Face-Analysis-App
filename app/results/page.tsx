@@ -172,95 +172,190 @@ const SEVERITY_STYLES: Record<string, string> = {
   severe: "bg-red-500/10 text-red-400 border border-red-500/20",
 };
 
-const GROOMING_PRODUCT_KW = [
-  "tondeuse","trimmer","rasoir","razor","ciseau","ciseaux","scissors",
-  "crayon","pencil","lunettes","glasses","monture","frame",
-  "huile","oil","crème","cream","baume","balm","gel","spray","mousse",
-  "pomade","pommade","cire","wax","brillantine","gomina",
-  "shampooing","shampoo","après-shampooing","conditioner",
-  "masque","mask","sérum","serum","lotion","toner","exfoliant","scrub",
-  "brosse","brush","peigne","comb","lisseur","straightener","diffuseur",
-  "écran solaire","sunscreen","spf","correcteur","concealer",
-  "patches","patch","fond de teint","bb cream","cc cream",
-  "after-shave","aftershave","mousse à raser","shaving",
-  "kit","produit","complexe","supplément",
-];
+// ── Flaw matching helpers ─────────────────────────────────────────────────────
 
-function isGroomingProduct(item: string): boolean {
-  const lower = item.toLowerCase();
-  return GROOMING_PRODUCT_KW.some((kw) => lower.includes(kw));
+function matchItemsToFlaw(flawName: string, items: string[]): string[] {
+  const words = flawName
+    .toLowerCase()
+    .split(/[\s\-,;.'"()/]+/)
+    .filter((w) => w.length >= 4);
+  if (!words.length) return [];
+  return items.filter((item) =>
+    words.some((w) => item.toLowerCase().includes(w))
+  );
 }
 
-function PlanSection({
-  icon,
-  title,
-  items,
-  accentColor,
-  delay,
-  withAmazon = false,
-  amazonFilter,
+function matchProductsToFlaw(
+  flawName: string,
+  products: RecommendedProduct[]
+): RecommendedProduct[] {
+  const words = flawName
+    .toLowerCase()
+    .split(/[\s\-,;.'"()/]+/)
+    .filter((w) => w.length >= 4);
+  if (!words.length) return [];
+  return products.filter((p) =>
+    words.some((w) =>
+      (p.reason + " " + p.product + " " + p.usage).toLowerCase().includes(w)
+    )
+  );
+}
+
+// ── Flaw Card (expandable) ────────────────────────────────────────────────────
+
+function FlawCard({
+  flaw,
+  plan,
+  products,
+  index,
 }: {
-  icon: string;
-  title: string;
-  items: string[];
-  accentColor: string;
-  delay: number;
-  withAmazon?: boolean;
-  amazonFilter?: (item: string) => boolean;
+  flaw: DetectedFlaw;
+  plan?: ImprovementPlan;
+  products?: RecommendedProduct[];
+  index: number;
 }) {
+  const [open, setOpen] = useState(false);
+
+  const borderColor =
+    flaw.severity === "severe"
+      ? "rgba(248,113,113,0.18)"
+      : flaw.severity === "moderate"
+      ? "rgba(251,146,60,0.15)"
+      : "rgba(250,204,21,0.12)";
+
+  const exercises = plan ? matchItemsToFlaw(flaw.flaw, plan.exercises ?? []) : [];
+  const skincareItems = plan
+    ? matchItemsToFlaw(flaw.flaw, [...(plan.skincare ?? []), ...(plan.grooming ?? [])])
+    : [];
+  const lifestyle = plan ? matchItemsToFlaw(flaw.flaw, plan.lifestyle ?? []) : [];
+  const matched = products ? matchProductsToFlaw(flaw.flaw, products) : [];
+
   return (
     <div
-      className="rounded-2xl border bg-white/[0.02] p-5 fade-up"
+      className="rounded-2xl border overflow-hidden fade-up"
       style={{
-        borderColor: `${accentColor}22`,
-        animationDelay: `${delay}ms`,
+        borderColor,
+        animationDelay: `${500 + index * 70}ms`,
         animationFillMode: "both",
       }}
     >
-      <div className="flex items-center gap-2 mb-4">
-        <span
-          className="w-7 h-7 rounded-lg flex items-center justify-center text-sm flex-shrink-0"
-          style={{ background: `${accentColor}15` }}
-        >
-          {icon}
+      {/* Header */}
+      <button
+        className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-white/[0.025] transition-colors"
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className="flex-1 text-sm font-medium text-white/80 leading-snug min-w-0">
+          {flaw.flaw}
         </span>
-        <h3
-          className="text-xs font-bold uppercase tracking-widest"
-          style={{ color: accentColor }}
+        <span
+          className={`flex-none text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wide ${
+            SEVERITY_STYLES[flaw.severity] ?? SEVERITY_STYLES.mild
+          }`}
         >
-          {title}
-        </h3>
-      </div>
-      <ul className="flex flex-col gap-2.5">
-        {items.map((item, i) => {
-          const showAmazon = amazonFilter ? amazonFilter(item) : withAmazon;
-          return (
-            <li
-              key={i}
-              className="flex items-start justify-between gap-2 text-sm text-white/60 leading-relaxed"
-            >
-              <div className="flex items-start gap-2 min-w-0 flex-1">
-                <span
-                  className="mt-1.5 w-1 h-1 rounded-full flex-shrink-0"
-                  style={{ background: accentColor }}
-                />
-                <span>{item}</span>
+          {flaw.severity}
+        </span>
+        <svg
+          className={`w-4 h-4 flex-none text-white/25 transition-transform duration-200 ${
+            open ? "rotate-180" : ""
+          }`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="m19 9-7 7-7-7" />
+        </svg>
+      </button>
+
+      {/* Expandable body */}
+      {open && (
+        <div
+          className="border-t px-4 pt-4 pb-4 flex flex-col gap-4 bg-white/[0.01]"
+          style={{ borderColor }}
+        >
+          {/* 📋 Protocole */}
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/25 mb-2">
+              📋 Protocole
+            </p>
+            <p className="text-sm text-white/65 leading-relaxed">{flaw.fix}</p>
+          </div>
+
+          {/* 💪 Exercices */}
+          {exercises.length > 0 && (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#4ade80]/55 mb-2">
+                💪 Exercices
+              </p>
+              <ul className="flex flex-col gap-1.5">
+                {exercises.map((ex, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-white/55 leading-relaxed">
+                    <span className="mt-1.5 w-1 h-1 rounded-full bg-[#4ade80]/40 flex-shrink-0" />
+                    {ex}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* 🛍️ Produits */}
+          {(matched.length > 0 || skincareItems.length > 0) && (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#e99846]/55 mb-2">
+                🛍️ Produits
+              </p>
+              <div className="flex flex-col gap-2">
+                {skincareItems.map((item, i) => (
+                  <div key={`s${i}`} className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-white/55 leading-relaxed flex-1 min-w-0">{item}</span>
+                    <a
+                      href={`https://www.amazon.fr/s?k=${encodeURIComponent(item)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-none text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#e99846]/30 text-[#e99846] hover:bg-[#e99846]/10 transition-colors whitespace-nowrap"
+                    >
+                      Amazon →
+                    </a>
+                  </div>
+                ))}
+                {matched.map((p, i) => (
+                  <div key={`p${i}`} className="flex items-center justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-white/70 leading-snug">{p.product}</p>
+                      <p className="text-[10px] text-white/30">{p.brand}</p>
+                    </div>
+                    <a
+                      href={`https://www.amazon.fr/s?k=${encodeURIComponent(p.amazon_search)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-none text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#e99846]/30 text-[#e99846] hover:bg-[#e99846]/10 transition-colors whitespace-nowrap"
+                    >
+                      Amazon →
+                    </a>
+                  </div>
+                ))}
               </div>
-              {showAmazon && (
-                <a
-                  href={`https://www.amazon.fr/s?k=${encodeURIComponent(item)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-none text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap transition-colors"
-                  style={{ borderColor: `${accentColor}40`, color: accentColor }}
-                >
-                  Amazon →
-                </a>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+            </div>
+          )}
+
+          {/* 🌙 Mode de vie */}
+          {lifestyle.length > 0 && (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#a78bfa]/55 mb-2">
+                🌙 Mode de vie
+              </p>
+              <ul className="flex flex-col gap-1.5">
+                {lifestyle.map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-white/55 leading-relaxed">
+                    <span className="mt-1.5 w-1 h-1 rounded-full bg-[#a78bfa]/40 flex-shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -1401,15 +1496,6 @@ export default function ResultsPage() {
       : []),
   ];
 
-  const planSections = results.improvement_plan
-    ? [
-        { icon: "🧴", title: t.results.plan.skincare, items: results.improvement_plan.skincare, accentColor: "#60a5fa", delay: 800, withAmazon: true },
-        { icon: "💪", title: t.results.plan.exercises, items: results.improvement_plan.exercises, accentColor: "#4ade80", delay: 900 },
-        { icon: "🌙", title: t.results.plan.lifestyle, items: results.improvement_plan.lifestyle, accentColor: "#a78bfa", delay: 1000 },
-        { icon: "✂️", title: t.results.plan.grooming, items: results.improvement_plan.grooming, accentColor: "#e99846", delay: 1100, amazonFilter: isGroomingProduct },
-      ]
-    : [];
-
   const pw = t.results.paywall;
 
   const Nav = (
@@ -1531,30 +1617,24 @@ export default function ResultsPage() {
             </div>
           </div>
 
-          {/* Detected Flaws */}
+          {/* Défauts détectés — expandable cards */}
           {results.detected_flaws && results.detected_flaws.length > 0 && (
-            <div
-              className="rounded-2xl border border-red-500/10 bg-red-500/[0.03] p-6 mb-6 fade-up"
-              style={{ animationDelay: "500ms", animationFillMode: "both" }}
-            >
-              <h2 className="font-bold text-sm uppercase tracking-widest text-red-400/60 mb-4">
-                {t.results.detectedFlaws}
-              </h2>
-              <div className="flex flex-col gap-3">
-                {results.detected_flaws.map((item, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <span
-                      className={`mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${
-                        SEVERITY_STYLES[item.severity] ?? SEVERITY_STYLES.mild
-                      }`}
-                    >
-                      {item.severity}
-                    </span>
-                    <div className="flex flex-col gap-0.5 min-w-0">
-                      <span className="text-sm text-white/75 font-medium">{item.flaw}</span>
-                      <span className="text-xs text-white/35 leading-relaxed">{item.fix}</span>
-                    </div>
-                  </div>
+            <div className="mb-6">
+              <div className="mb-4 fade-up" style={{ animationDelay: "480ms", animationFillMode: "both" }}>
+                <p className="text-xs uppercase tracking-[0.3em] text-red-400/60 mb-1 font-semibold">
+                  {t.results.detectedFlaws}
+                </p>
+                <h2 className="text-2xl font-black">Protocoles correctifs</h2>
+              </div>
+              <div className="flex flex-col gap-2">
+                {results.detected_flaws.map((flaw, i) => (
+                  <FlawCard
+                    key={i}
+                    flaw={flaw}
+                    plan={results.improvement_plan}
+                    products={results.recommended_products ?? undefined}
+                    index={i}
+                  />
                 ))}
               </div>
             </div>
@@ -1604,23 +1684,6 @@ export default function ResultsPage() {
 
           {/* Sleep protocol */}
           {results.sleep_protocol && <SleepProtocolSection sleep={results.sleep_protocol} />}
-
-          {/* Personalized Improvement Plan */}
-          {planSections.length > 0 && (
-            <div className="mb-8">
-              <div className="mb-5 fade-up" style={{ animationDelay: "1050ms", animationFillMode: "both" }}>
-                <p className="text-xs uppercase tracking-[0.3em] text-[#e99846] mb-1 font-semibold">
-                  {t.results.personalized}
-                </p>
-                <h2 className="text-2xl font-black">{t.results.improvementPlan}</h2>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {planSections.map((s) => (
-                  <PlanSection key={s.title} {...s} />
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Programme 7 jours */}
           {results.daily_program && (
