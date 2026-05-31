@@ -269,11 +269,25 @@
 
 /* ============ ≤768px — mobile phone mockup sizing ============ */
 @media (max-width:768px){
-  .landing-pg .phone{width:200px;border-radius:32px}
-  .landing-pg .phone-screen{border-radius:28px}
-  .landing-pg .phone-notch{width:76px;height:22px;border-radius:14px}
-  .landing-pg .phone-2{width:170px;margin-left:-28px}
-  .landing-pg .phones{min-height:450px}
+  /* Clip anything that overflows the hero */
+  .landing-pg .hero{overflow:hidden}
+  /* Phones container: centered column, capped at 90vw */
+  .landing-pg .phones{
+    min-height:400px;
+    max-width:90vw;
+    margin-left:auto;
+    margin-right:auto;
+    overflow:hidden;
+  }
+  /* Smaller frames */
+  .landing-pg .phone{width:185px;border-radius:30px}
+  .landing-pg .phone-screen{border-radius:26px}
+  .landing-pg .phone-notch{width:72px;height:22px;border-radius:14px}
+  /* Reduce rotation so rotated box doesn't bleed outside container */
+  .landing-pg .phone-1{transform:rotate(-2deg) translateY(0)}
+  .landing-pg .phone-1:hover{transform:rotate(-1deg) translateY(-4px)}
+  .landing-pg .phone-2{width:158px;margin-left:-26px;transform:rotate(3deg) translateY(-20px)}
+  .landing-pg .phone-2:hover{transform:rotate(2deg) translateY(-26px)}
 }
 
 /* ============ ≤640px — mid-mobile ============ */
