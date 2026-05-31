@@ -69,7 +69,7 @@ export default function SignupPage() {
   return (
     <main className="min-h-screen bg-[#0a0a0a] text-[#ededed] flex flex-col">
       <nav className="flex items-center justify-between px-6 py-4 border-b border-white/5">
-        <Link href="/" className="text-xl font-bold tracking-widest gold-text">MOGRANK</Link>
+        <Link href="/" className="text-xl font-bold tracking-widest gold-text">FaceUP</Link>
       </nav>
 
       <div className="flex flex-1 items-center justify-center px-6 py-16">
@@ -77,7 +77,7 @@ export default function SignupPage() {
           <div className="text-center mb-8">
             <p className="text-xs uppercase tracking-[0.3em] text-[#e99846] mb-2 font-semibold">Nouveau compte</p>
             <h1 className="text-3xl font-black">Inscription</h1>
-            <p className="text-sm text-white/40 mt-2">Crée ton compte MogRank</p>
+            <p className="text-sm text-white/40 mt-2">Crée ton compte FaceUP</p>
           </div>
 
           {/* Google OAuth */}

@@ -51,7 +51,7 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen bg-[#0a0a0a] text-[#ededed] flex flex-col">
       <nav className="flex items-center justify-between px-6 py-4 border-b border-white/5">
-        <Link href="/" className="text-xl font-bold tracking-widest gold-text">MOGRANK</Link>
+        <Link href="/" className="text-xl font-bold tracking-widest gold-text">FaceUP</Link>
       </nav>
 
       <div className="flex flex-1 items-center justify-center px-6 py-16">

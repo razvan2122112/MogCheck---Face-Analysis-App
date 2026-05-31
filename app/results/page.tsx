@@ -1025,7 +1025,7 @@ export default function ResultsPage() {
   const Nav = (
     <nav className="flex items-center justify-between px-6 py-4 border-b border-white/5">
       <Link href="/" className="text-xl font-bold tracking-widest gold-text">
-        MOGRANK
+        FaceUP
       </Link>
       <div className="flex items-center gap-3">
         <LangToggle className="flex items-center text-[11px] font-bold tracking-[0.08em] text-white/60 hover:text-white/90 transition-opacity" />

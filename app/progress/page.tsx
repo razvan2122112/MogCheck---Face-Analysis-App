@@ -101,7 +101,7 @@ export default function ProgressPage() {
 
   const navEl = (
     <nav className="flex items-center justify-between px-6 py-4 border-b border-white/5 flex-none">
-      <Link href="/" className="text-xl font-bold tracking-widest gold-text">MOGRANK</Link>
+      <Link href="/" className="text-xl font-bold tracking-widest gold-text">FaceUP</Link>
       <div className="flex items-center gap-3">
         <Link href="/upload" className="text-xs text-white/40 hover:text-white/70 transition-colors hidden sm:block">
           Analyse
@@ -185,7 +185,7 @@ export default function ProgressPage() {
         {/* ── header ─────────────────────────────────────────────────────── */}
         <div className="mb-8">
           <p className="text-xs uppercase tracking-[0.3em] text-[#e99846] mb-2 font-semibold">Suivi · 90 jours</p>
-          <h1 className="text-2xl sm:text-3xl font-black mb-5">Ta Progression MogRank</h1>
+          <h1 className="text-2xl sm:text-3xl font-black mb-5">Ta Progression FaceUP</h1>
 
           <div className="grid grid-cols-3 gap-3 mb-3">
             <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3 text-center">
