@@ -46,7 +46,57 @@ JSON schema:
     { "product": "exact product name", "brand": "brand name", "reason": "why for this specific face", "usage": "how and when to use", "amazon_search": "exact amazon search term" },
     { "product": "exact product name", "brand": "brand name", "reason": "why for this specific face", "usage": "how and when to use", "amazon_search": "exact amazon search term" },
     { "product": "exact product name", "brand": "brand name", "reason": "why for this specific face", "usage": "how and when to use", "amazon_search": "exact amazon search term" }
-  ]
+  ],
+  "facial_details": {
+    "eyebrows": "<current shape, thickness, symmetry, gaps — recommended style (arch/straight/thick/defined) and exact products>",
+    "beard": "<current growth/style, patchy zones, recommended beard style for this exact face shape, whether to grow or trim>",
+    "hair": "<ideal haircut for detected face shape (name the cut), current hair health/thickness, specific styling tips>",
+    "skin": "<type (oily/dry/combination/normal), pore size, texture, redness zones, acne presence/severity, dark circle depth>",
+    "cheeks": "<definition (hollow/average/full), visible water retention, estimated facial body fat range>",
+    "chin": "<double chin assessment (none/mild/moderate/severe), jaw-to-neck separation, solutions>",
+    "cheekbones": "<prominence (flat/average/prominent), techniques to accentuate (contouring, mastic gum, exercises)>",
+    "neck_posture": "<forward head posture assessment, tech neck signs, corrective protocol>"
+  },
+  "supplements": [
+    { "name": "<supplement name>", "dose": "<exact dosage>", "benefit": "<benefit tied to a specific detected flaw>", "amazon_search": "<exact Amazon search term>" },
+    { "name": "<supplement name>", "dose": "<exact dosage>", "benefit": "<benefit>", "amazon_search": "<search term>" },
+    { "name": "<supplement name>", "dose": "<exact dosage>", "benefit": "<benefit>", "amazon_search": "<search term>" },
+    { "name": "<supplement name>", "dose": "<exact dosage>", "benefit": "<benefit>", "amazon_search": "<search term>" },
+    { "name": "<supplement name>", "dose": "<exact dosage>", "benefit": "<benefit>", "amazon_search": "<search term>" }
+  ],
+  "skincare": {
+    "morning": [
+      { "product": "<product name>", "ingredient": "<key active ingredient>", "amazon_search": "<search term>" },
+      { "product": "<product name>", "ingredient": "<key active ingredient>", "amazon_search": "<search term>" },
+      { "product": "<product name>", "ingredient": "<key active ingredient>", "amazon_search": "<search term>" },
+      { "product": "<product name>", "ingredient": "<key active ingredient>", "amazon_search": "<search term>" }
+    ],
+    "evening": [
+      { "product": "<product name>", "ingredient": "<key active ingredient>", "amazon_search": "<search term>" },
+      { "product": "<product name>", "ingredient": "<key active ingredient>", "amazon_search": "<search term>" },
+      { "product": "<product name>", "ingredient": "<key active ingredient>", "amazon_search": "<search term>" },
+      { "product": "<product name>", "ingredient": "<key active ingredient>", "amazon_search": "<search term>" }
+    ]
+  },
+  "water_retention": {
+    "level": "<none|mild|moderate|severe>",
+    "causes": ["<cause 1>", "<cause 2>", "<cause 3>"],
+    "solutions": ["<solution 1>", "<solution 2>", "<solution 3>", "<solution 4>"]
+  },
+  "body_fat_target": {
+    "current_estimate": "<e.g. 18-22%>",
+    "target": "<e.g. 12-15%>",
+    "impact_on_face": "<describe exactly which facial features improve at target BF>"
+  },
+  "mewing": {
+    "current_posture": "<assessment based on midface ratios and facial thirds>",
+    "steps": ["<step 1>", "<step 2>", "<step 3>", "<step 4>"],
+    "youtube_search": "<exact YouTube search term like 'Dr Mike Mew proper mewing technique'>"
+  },
+  "sleep_protocol": {
+    "hours": <number 7-9>,
+    "tips": ["<tip 1>", "<tip 2>", "<tip 3>"]
+  }
 }
 
 Scoring guidelines:
@@ -107,6 +157,47 @@ recommended_products — list exactly 4 products that directly address the detec
 - Each product must have an exact name, brand, specific reason tied to a detected flaw, usage instructions, and an Amazon search term that will find it.
 - Do not recommend any product that does not address at least one detected flaw.
 - Prioritize products by impact — most critical flaw first.
+
+facial_details — analyze each zone visually based on what you see in the photos:
+- eyebrows: assess arch shape, thickness, symmetry, gaps. Name whether they suit the face shape. Recommend threading vs waxing vs trimming. Name 1-2 specific products (brow pencil, pomade, growth serum) with brands.
+- beard: assess current growth state and patchiness. For weak jawlines: strongly recommend stubble/short beard to create jaw illusion. For strong jaws: assess optimal beard length. Name patchy zones.
+- hair: name the ideal specific haircut for their detected face shape (e.g., "textured French crop" for round face, "side part slick back" for oval). Note current hair health, thinning, or oiliness.
+- skin: assess skin type (oily pores = oily, tight + flaky = dry, both = combination). Rate pore size (fine/normal/enlarged/clogged). Note redness zones, acne severity, under-eye circle depth and color (purple = venous, brown = hyperpigmentation).
+- cheeks: assess cheek hollowness vs fullness. If puffy/full: estimate water retention and facial body fat range (e.g., "~20-24% BF, moderate water retention"). If hollow: note.
+- chin: assess double chin (none/mild/moderate/severe). Note jaw-neck separation clarity. If double chin present: recommend neck exercises, weight loss target, and defi jaw tool.
+- cheekbones: rate prominence (flat/average/prominent). If flat: recommend mastic gum chewing protocol, cheekbone contouring technique, and facial fat loss target.
+- neck_posture: assess forward head posture (chin-to-chest distance, ear alignment over shoulder). Recommend chin tucks (3×15), wall angels, and metatarsus correction.
+
+supplements — list exactly 5 supplements addressing detected issues:
+- Match supplements to detected flaws: zinc 30mg for acne, biotin for hair, magnesium glycinate for water retention/sleep, collagen for skin aging, vitamin K2+D3 for bone structure.
+- Every supplement must reference a specific detected flaw in its benefit field.
+- Include exact dosage and timing (e.g., "30mg with dinner").
+- Amazon search terms must find the exact product (brand + name + dosage).
+
+skincare — build a precise personalized routine based on detected skin type and flaws:
+- morning (max 4 products in order of application): always include SPF 30-50+ as last step. Include Vitamin C serum if dullness/hyperpigmentation detected. Include niacinamide if large pores detected. Include BHA if acne/clogged pores detected.
+- evening (max 4 products in order of application): include retinol 0.025-0.1% or tretinoin if acne/aging/poor texture detected. Include niacinamide for large pores. Include caffeine eye cream if dark circles detected. Include hydrating toner if dry skin.
+- Name exact products with brands (e.g., "Paula's Choice 2% BHA Liquid Exfoliant", "CeraVe Moisturizing Cream").
+- Every product must address a specific detected flaw.
+
+water_retention — visually estimate from the photos:
+- level: none (sharp jaw, no puffiness), mild (slight cheek softness), moderate (visible puffiness, soft jaw), severe (significant facial bloating, no jaw definition).
+- causes: list 2-4 likely causes based on what you see (excess sodium, alcohol, poor sleep, sedentary lifestyle, hormonal).
+- solutions: list 3-5 specific interventions (gua sha lymphatic drainage 10 min daily, 48h low-sodium protocol, 3L water daily, dandelion root supplement, sleep elevation).
+
+body_fat_target — estimate based on facial fat distribution visible in photos:
+- current_estimate: give a range (e.g., "18-22%") based on cheek fullness, jaw definition, chin.
+- target: the BF% at which face will look optimal (typically 12-15% for men, 18-22% for women for sharp facial features).
+- impact_on_face: describe specifically which features will change (e.g., "Cheekbones become prominent, jaw angle sharpens, double chin disappears, orbital bone becomes visible").
+
+mewing — assess and prescribe based on midface ratios:
+- current_posture: assess from midface ratio and facial thirds. Recessed maxilla, long philtrum, or high facial thirds suggest poor tongue posture.
+- steps: provide 4 exact steps of proper mewing technique (tongue body on palate, suction hold, teeth lightly touching, nasal breathing). Be specific about duration/reps.
+- youtube_search: use a highly specific search like "Dr Mike Mew mewing tutorial 2024 correct technique".
+
+sleep_protocol — based on detected issues (puffiness, dark circles, skin quality):
+- hours: recommend 7-9, be specific based on detected fatigue markers (dark circles, skin dullness suggest inadequate sleep).
+- tips: 3-5 specific tips (sleep on back for facial symmetry, elevate pillow 10-15cm for lymphatic drainage/puffiness, no sodium 3h before bed, no alcohol, room temperature 18-19°C).
 
 CRITICAL: You MUST respond with ONLY a valid JSON object. No markdown, no \`\`\`json, no explanation before or after. Start with { and end with }. Any text outside the JSON object will break the parser.`;
 

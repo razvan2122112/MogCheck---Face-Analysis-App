@@ -38,6 +38,58 @@ interface RecommendedProduct {
   amazon_search: string;
 }
 
+interface FacialDetails {
+  eyebrows?: string;
+  beard?: string;
+  hair?: string;
+  skin?: string;
+  cheeks?: string;
+  chin?: string;
+  cheekbones?: string;
+  neck_posture?: string;
+}
+
+interface Supplement {
+  name: string;
+  dose: string;
+  benefit: string;
+  amazon_search: string;
+}
+
+interface SkincareProduct {
+  product: string;
+  ingredient: string;
+  amazon_search: string;
+}
+
+interface SkincareRoutine {
+  morning: SkincareProduct[];
+  evening: SkincareProduct[];
+}
+
+interface WaterRetention {
+  level: string;
+  causes: string[];
+  solutions: string[];
+}
+
+interface BodyFatTarget {
+  current_estimate: string;
+  target: string;
+  impact_on_face: string;
+}
+
+interface MewingProtocol {
+  current_posture: string;
+  steps: string[];
+  youtube_search: string;
+}
+
+interface SleepProtocol {
+  hours: number;
+  tips: string[];
+}
+
 interface AnalysisResult {
   symmetry_score: number;
   jawline_score: number;
@@ -55,6 +107,13 @@ interface AnalysisResult {
   summary?: string;
   daily_program?: DailyProgram | null;
   recommended_products?: RecommendedProduct[] | null;
+  facial_details?: FacialDetails;
+  supplements?: Supplement[];
+  skincare?: SkincareRoutine;
+  water_retention?: WaterRetention;
+  body_fat_target?: BodyFatTarget;
+  mewing?: MewingProtocol;
+  sleep_protocol?: SleepProtocol;
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -287,6 +346,285 @@ function tierFromScore(score: number): string {
   if (score >= 3.5) return "Below Average";
   if (score >= 2.5) return "Incel Tier";
   return "Subhuman";
+}
+
+// ── Facial Details Section ────────────────────────────────────────────────────
+
+const ZONE_CONFIG: Array<{ key: keyof FacialDetails; icon: string; label: string }> = [
+  { key: "eyebrows",     icon: "〰️", label: "Sourcils" },
+  { key: "beard",        icon: "🧔", label: "Barbe" },
+  { key: "hair",         icon: "💈", label: "Cheveux" },
+  { key: "skin",         icon: "🧴", label: "Peau" },
+  { key: "cheeks",       icon: "😊", label: "Joues" },
+  { key: "chin",         icon: "🦷", label: "Menton" },
+  { key: "cheekbones",   icon: "💀", label: "Pommettes" },
+  { key: "neck_posture", icon: "🦒", label: "Posture / Cou" },
+];
+
+function FacialDetailsSection({ details }: { details: FacialDetails }) {
+  const zones = ZONE_CONFIG.filter(z => details[z.key]);
+  if (zones.length === 0) return null;
+  return (
+    <div className="mb-8 fade-up" style={{ animationDelay: "450ms", animationFillMode: "both" }}>
+      <div className="mb-5">
+        <p className="text-xs uppercase tracking-[0.3em] text-[#5fd0bf] mb-1 font-semibold">Analyse visuelle</p>
+        <h2 className="text-2xl font-black">Analyse par zone</h2>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {zones.map(z => (
+          <div key={z.key} className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-lg leading-none">{z.icon}</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">{z.label}</span>
+            </div>
+            <p className="text-sm text-white/65 leading-relaxed">{details[z.key]}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Skincare Routine Section ──────────────────────────────────────────────────
+
+function SkincareRoutineSection({ skincare }: { skincare: SkincareRoutine }) {
+  const hasItems = (skincare.morning?.length ?? 0) > 0 || (skincare.evening?.length ?? 0) > 0;
+  if (!hasItems) return null;
+
+  const ProductCard = ({ p, slot }: { p: SkincareProduct; slot: "morning" | "evening" }) => (
+    <div className="flex items-start justify-between gap-3 py-3 border-b border-white/[0.04] last:border-0">
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-white/80 leading-snug">{p.product}</p>
+        <p className="text-[11px] text-white/35 mt-0.5">{p.ingredient}</p>
+      </div>
+      <a
+        href={`https://www.amazon.fr/s?k=${encodeURIComponent(p.amazon_search)}`}
+        target="_blank" rel="noopener noreferrer"
+        className={`flex-none text-[10px] font-bold px-2.5 py-1 rounded-full border whitespace-nowrap transition-colors ${
+          slot === "morning"
+            ? "border-[#e99846]/35 text-[#e99846] hover:bg-[#e99846]/10"
+            : "border-[#a78bfa]/35 text-[#a78bfa] hover:bg-[#a78bfa]/10"
+        }`}
+      >
+        Amazon →
+      </a>
+    </div>
+  );
+
+  return (
+    <div className="mb-8 fade-up" style={{ animationDelay: "680ms", animationFillMode: "both" }}>
+      <div className="mb-5">
+        <p className="text-xs uppercase tracking-[0.3em] text-[#e99846] mb-1 font-semibold">Routine personnalisée</p>
+        <h2 className="text-2xl font-black">Skincare Matin / Soir</h2>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {skincare.morning?.length > 0 && (
+          <div className="rounded-2xl border border-[#e99846]/20 bg-[#e99846]/[0.02] p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-base">🌅</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-[#e99846]/70">Routine Matin</span>
+            </div>
+            {skincare.morning.map((p, i) => <ProductCard key={i} p={p} slot="morning" />)}
+          </div>
+        )}
+        {skincare.evening?.length > 0 && (
+          <div className="rounded-2xl border border-[#a78bfa]/20 bg-[#a78bfa]/[0.02] p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-base">🌙</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-[#a78bfa]/70">Routine Soir</span>
+            </div>
+            {skincare.evening.map((p, i) => <ProductCard key={i} p={p} slot="evening" />)}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Supplements Section ───────────────────────────────────────────────────────
+
+function SupplementsSection({ supplements }: { supplements: Supplement[] }) {
+  if (!supplements?.length) return null;
+  return (
+    <div className="mb-8 fade-up" style={{ animationDelay: "750ms", animationFillMode: "both" }}>
+      <div className="mb-5">
+        <p className="text-xs uppercase tracking-[0.3em] text-[#4ade80] mb-1 font-semibold">Protocole interne</p>
+        <h2 className="text-2xl font-black">Suppléments</h2>
+      </div>
+      <div className="flex flex-col gap-3">
+        {supplements.map((s, i) => (
+          <div key={i} className="rounded-2xl border border-[#4ade80]/15 bg-[#4ade80]/[0.02] p-4 flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                <p className="font-bold text-white text-sm">{s.name}</p>
+                <span className="text-[10px] font-mono text-[#4ade80]/70 border border-[#4ade80]/25 px-1.5 py-0.5 rounded-full">{s.dose}</span>
+              </div>
+              <p className="text-xs text-white/50 leading-relaxed">{s.benefit}</p>
+            </div>
+            <a
+              href={`https://www.amazon.fr/s?k=${encodeURIComponent(s.amazon_search)}`}
+              target="_blank" rel="noopener noreferrer"
+              className="flex-none text-[10px] font-bold px-2.5 py-1 rounded-full border border-[#4ade80]/35 text-[#4ade80] hover:bg-[#4ade80]/10 transition-colors whitespace-nowrap"
+            >
+              Amazon →
+            </a>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Water Retention Section ───────────────────────────────────────────────────
+
+const WR_LEVEL: Record<string, { label: string; color: string; bg: string; border: string; pct: number }> = {
+  none:     { label: "Aucune",   color: "#4ade80", bg: "rgba(74,222,128,0.05)", border: "rgba(74,222,128,0.2)",  pct: 5  },
+  mild:     { label: "Légère",   color: "#e99846", bg: "rgba(233,152,70,0.05)", border: "rgba(233,152,70,0.2)",  pct: 35 },
+  moderate: { label: "Modérée",  color: "#fb923c", bg: "rgba(251,146,60,0.05)", border: "rgba(251,146,60,0.2)",  pct: 65 },
+  severe:   { label: "Sévère",   color: "#f87171", bg: "rgba(248,113,113,0.05)", border: "rgba(248,113,113,0.2)", pct: 95 },
+};
+
+function WaterRetentionSection({ wr, bft }: { wr: WaterRetention; bft?: BodyFatTarget }) {
+  const cfg = WR_LEVEL[wr.level] ?? WR_LEVEL.mild;
+  return (
+    <div className="mb-8 fade-up" style={{ animationDelay: "820ms", animationFillMode: "both" }}>
+      <div className="mb-5">
+        <p className="text-xs uppercase tracking-[0.3em] text-[#60a5fa] mb-1 font-semibold">Composition faciale</p>
+        <h2 className="text-2xl font-black">Rétention d&apos;eau &amp; Body Fat</h2>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Water retention card */}
+        <div className="rounded-2xl border p-5" style={{ borderColor: cfg.border, background: cfg.bg }}>
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: cfg.color }}>Rétention d&apos;eau</span>
+            <span className="text-sm font-black" style={{ color: cfg.color }}>{cfg.label}</span>
+          </div>
+          {/* Level bar */}
+          <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden mb-4">
+            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${cfg.pct}%`, background: cfg.color }} />
+          </div>
+          {wr.causes?.length > 0 && (
+            <div className="mb-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/30 mb-1.5">Causes</p>
+              <ul className="flex flex-col gap-1">
+                {wr.causes.map((c, i) => (
+                  <li key={i} className="flex gap-1.5 text-xs text-white/55 leading-snug">
+                    <span style={{ color: cfg.color }} className="flex-none mt-0.5">›</span>{c}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {wr.solutions?.length > 0 && (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/30 mb-1.5">Solutions</p>
+              <ul className="flex flex-col gap-1">
+                {wr.solutions.map((s, i) => (
+                  <li key={i} className="flex gap-1.5 text-xs text-white/55 leading-snug">
+                    <span className="text-[#4ade80] flex-none mt-0.5">✓</span>{s}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+        {/* Body fat target card */}
+        {bft && (
+          <div className="rounded-2xl border border-[#60a5fa]/20 bg-[#60a5fa]/[0.02] p-5">
+            <span className="text-xs font-bold uppercase tracking-widest text-[#60a5fa]/70">Body Fat Facial</span>
+            <div className="flex items-end gap-3 my-4">
+              <div className="text-center">
+                <p className="text-[10px] text-white/30 mb-1">Actuel</p>
+                <p className="text-2xl font-black text-white/70">{bft.current_estimate}</p>
+              </div>
+              <svg className="w-5 h-5 text-[#60a5fa]/50 mb-1 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+              </svg>
+              <div className="text-center">
+                <p className="text-[10px] text-white/30 mb-1">Objectif</p>
+                <p className="text-2xl font-black text-[#60a5fa]">{bft.target}</p>
+              </div>
+            </div>
+            <p className="text-xs text-white/50 leading-relaxed">{bft.impact_on_face}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Mewing Section ────────────────────────────────────────────────────────────
+
+function MewingSection({ mewing }: { mewing: MewingProtocol }) {
+  return (
+    <div className="mb-8 fade-up" style={{ animationDelay: "900ms", animationFillMode: "both" }}>
+      <div className="mb-5">
+        <p className="text-xs uppercase tracking-[0.3em] text-[#a78bfa] mb-1 font-semibold">Posture linguale</p>
+        <h2 className="text-2xl font-black">Mewing Protocol</h2>
+      </div>
+      <div className="rounded-2xl border border-[#a78bfa]/20 bg-[#a78bfa]/[0.02] p-5">
+        <div className="flex items-start gap-3 mb-5 pb-5 border-b border-white/[0.05]">
+          <span className="text-2xl flex-none">👅</span>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#a78bfa]/60 mb-1">Posture actuelle</p>
+            <p className="text-sm text-white/65 leading-relaxed">{mewing.current_posture}</p>
+          </div>
+        </div>
+        {mewing.steps?.length > 0 && (
+          <div className="mb-5">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-3">Protocole</p>
+            <ol className="flex flex-col gap-2.5">
+              {mewing.steps.map((step, i) => (
+                <li key={i} className="flex gap-3 text-sm text-white/65 leading-relaxed">
+                  <span className="flex-none w-5 h-5 rounded-full bg-[#a78bfa]/15 border border-[#a78bfa]/30 flex items-center justify-center text-[10px] font-black text-[#a78bfa] mt-0.5">
+                    {i + 1}
+                  </span>
+                  {step}
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+        {mewing.youtube_search && (
+          <a
+            href={`https://www.youtube.com/results?search_query=${encodeURIComponent(mewing.youtube_search)}`}
+            target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border border-[#a78bfa]/30 text-[#a78bfa] hover:bg-[#a78bfa]/15 transition-colors"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+            </svg>
+            Voir tutoriel YouTube →
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Sleep Protocol Section ────────────────────────────────────────────────────
+
+function SleepProtocolSection({ sleep }: { sleep: SleepProtocol }) {
+  return (
+    <div className="rounded-2xl border border-[#2dd4bf]/15 bg-[#2dd4bf]/[0.02] p-5 mb-6 fade-up" style={{ animationDelay: "960ms", animationFillMode: "both" }}>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">😴</span>
+          <span className="text-xs font-bold uppercase tracking-widest text-[#2dd4bf]/70">Protocole Sommeil</span>
+        </div>
+        <span className="text-lg font-black text-[#2dd4bf]">{sleep.hours}h</span>
+      </div>
+      {sleep.tips?.length > 0 && (
+        <ul className="flex flex-col gap-2">
+          {sleep.tips.map((tip, i) => (
+            <li key={i} className="flex gap-2 text-sm text-white/60 leading-relaxed">
+              <span className="text-[#2dd4bf]/50 flex-none mt-0.5">›</span>{tip}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 // ── Daily Program Section ─────────────────────────────────────────────────────
@@ -1141,6 +1479,9 @@ export default function ResultsPage() {
             </div>
           </div>
 
+          {/* Analyse par zone */}
+          {results.facial_details && <FacialDetailsSection details={results.facial_details} />}
+
           {/* Detected Flaws */}
           {results.detected_flaws && results.detected_flaws.length > 0 && (
             <div
@@ -1181,10 +1522,7 @@ export default function ResultsPage() {
               </h2>
               <ul className="flex flex-col gap-3">
                 {results.improvements.map((item, i) => (
-                  <li
-                    key={i}
-                    className="flex items-start gap-3 text-sm text-white/60 leading-relaxed"
-                  >
+                  <li key={i} className="flex items-start gap-3 text-sm text-white/60 leading-relaxed">
                     <span className="mt-0.5 text-[#e99846] flex-shrink-0">→</span>
                     {item}
                   </li>
@@ -1193,13 +1531,29 @@ export default function ResultsPage() {
             </div>
           )}
 
+          {/* Skincare Routine matin/soir */}
+          {results.skincare && <SkincareRoutineSection skincare={results.skincare} />}
+
+          {/* Suppléments */}
+          {results.supplements && results.supplements.length > 0 && (
+            <SupplementsSection supplements={results.supplements} />
+          )}
+
+          {/* Rétention d'eau + body fat */}
+          {results.water_retention && (
+            <WaterRetentionSection wr={results.water_retention} bft={results.body_fat_target} />
+          )}
+
+          {/* Mewing */}
+          {results.mewing && <MewingSection mewing={results.mewing} />}
+
+          {/* Sleep protocol */}
+          {results.sleep_protocol && <SleepProtocolSection sleep={results.sleep_protocol} />}
+
           {/* Personalized Improvement Plan */}
           {planSections.length > 0 && (
             <div className="mb-8">
-              <div
-                className="mb-5 fade-up"
-                style={{ animationDelay: "750ms", animationFillMode: "both" }}
-              >
+              <div className="mb-5 fade-up" style={{ animationDelay: "1050ms", animationFillMode: "both" }}>
                 <p className="text-xs uppercase tracking-[0.3em] text-[#e99846] mb-1 font-semibold">
                   {t.results.personalized}
                 </p>
@@ -1213,7 +1567,7 @@ export default function ResultsPage() {
             </div>
           )}
 
-          {/* 30-Day Program */}
+          {/* Programme 7 jours */}
           {results.daily_program && (
             <DailyProgramSection program={results.daily_program} />
           )}
