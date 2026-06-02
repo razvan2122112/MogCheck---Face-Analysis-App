@@ -208,21 +208,39 @@ const ANALYSIS_STEPS_EN = [
   "Facial symmetry analysis...",
   "Metrics calculation...",
   "Potential assessment...",
-  "Generating your program...",
-  "Finalizing...",
+  "Generating your personalized program...",
+  "Selecting products for your profile...",
+  "Calculating your transformation potential...",
+  "Finalizing recommendations...",
+  "Preparing your results...",
+  "Final verification...",
+  "Analysis complete!",
 ];
 const ANALYSIS_STEPS_FR = [
   "Détection du visage...",
   "Analyse de la symétrie faciale...",
   "Calcul des métriques...",
   "Évaluation du potentiel...",
-  "Génération de ton programme...",
-  "Finalisation...",
+  "Génération de ton programme personnalisé...",
+  "Sélection des produits adaptés à ton profil...",
+  "Calcul de ton potentiel de transformation...",
+  "Finalisation des recommandations...",
+  "Préparation de tes résultats...",
+  "Dernières vérifications...",
+  "Analyse complète !",
 ];
-const ANALYSIS_STEP_THRESHOLDS = [0, 15, 35, 55, 75, 90, 100];
+// One threshold per step-boundary; step i completes when progress >= THRESHOLDS[i+1]
+const ANALYSIS_STEP_THRESHOLDS = [0, 15, 35, 55, 75, 80, 85, 89, 93, 97, 100];
+// Ceiling values the timer advances through automatically (every 3-4 s) past 75%
+const LATE_CEILINGS = [80, 85, 89, 93, 97];
 
 function getAnalysisStepIdx(progress: number): number {
-  if (progress >= 90) return 5;
+  if (progress >= 100) return 10;
+  if (progress >= 97) return 9;
+  if (progress >= 93) return 8;
+  if (progress >= 89) return 7;
+  if (progress >= 85) return 6;
+  if (progress >= 80) return 5;
   if (progress >= 75) return 4;
   if (progress >= 55) return 3;
   if (progress >= 35) return 2;
@@ -283,6 +301,8 @@ export default function UploadPage() {
   const [dailyLimitReached, setDailyLimitReached] = useState<string | null>(null); // holds next_analysis date
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const stepTimeoutRef   = useRef<ReturnType<typeof setTimeout>  | null>(null);
+  const progressCeilRef  = useRef(0); // moving target the smooth interval chases
 
   useEffect(() => {
     return () => {
@@ -292,25 +312,44 @@ export default function UploadPage() {
   }, []);
 
   useEffect(() => {
-    if (loading) {
-      setAnalysisProgress(0);
-      progressTimerRef.current = setInterval(() => {
-        setAnalysisProgress((prev) => {
-          if (prev >= 89) {
-            if (progressTimerRef.current) clearInterval(progressTimerRef.current);
-            return 89;
-          }
-          const remaining = 90 - prev;
-          const increment = Math.max(0.12, remaining * 0.016);
-          return Math.min(89, prev + increment);
-        });
-      }, 50);
-    } else {
+    if (!loading) {
       if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      if (stepTimeoutRef.current) clearTimeout(stepTimeoutRef.current);
+      progressCeilRef.current = 0;
       setAnalysisProgress(0);
+      return () => {};
     }
+
+    // Reset state
+    setAnalysisProgress(0);
+    progressCeilRef.current = 75; // first ceiling: fill quickly to 75%
+    let lateIdx = 0;
+
+    // Recursive chain: advance ceiling every 3-4 s through LATE_CEILINGS
+    const advanceLateStep = () => {
+      if (lateIdx >= LATE_CEILINGS.length) return;
+      progressCeilRef.current = LATE_CEILINGS[lateIdx];
+      lateIdx++;
+      if (lateIdx < LATE_CEILINGS.length) {
+        stepTimeoutRef.current = setTimeout(advanceLateStep, 3000 + Math.random() * 1000);
+      }
+    };
+    // Start late-step chain ~3 s in (by then the 0→75% fill is done)
+    stepTimeoutRef.current = setTimeout(advanceLateStep, 3000 + Math.random() * 500);
+
+    // Smooth interval: chases progressCeilRef at every tick
+    progressTimerRef.current = setInterval(() => {
+      setAnalysisProgress((prev) => {
+        const ceil = progressCeilRef.current;
+        if (prev >= ceil) return prev;
+        const rem = ceil - prev;
+        return prev + Math.max(0.15, rem * 0.025);
+      });
+    }, 50);
+
     return () => {
       if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      if (stepTimeoutRef.current) clearTimeout(stepTimeoutRef.current);
     };
   }, [loading]);
 
@@ -584,6 +623,7 @@ export default function UploadPage() {
       }
 
       if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      if (stepTimeoutRef.current) clearTimeout(stepTimeoutRef.current);
       setAnalysisProgress(100);
       await new Promise<void>((r) => setTimeout(r, 700));
       router.push("/results");
